@@ -37,6 +37,8 @@
 #include "Targets/WebAssembly.h"
 #include "Targets/X86.h"
 #include "Targets/XCore.h"
+#include "Targets/SAYAC.h"
+#include "Targets/M88k.h"
 #include "clang/Basic/Diagnostic.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Triple.h"
@@ -582,6 +584,9 @@ TargetInfo *AllocateTarget(const llvm::Triple &Triple,
     default:
       return new X86_64TargetInfo(Triple, Opts);
     }
+
+  case llvm::Triple::sayac:
+    return new SAYACTargetInfo(Triple, Opts);
 
   case llvm::Triple::spir: {
     if (Triple.getOS() != llvm::Triple::UnknownOS ||

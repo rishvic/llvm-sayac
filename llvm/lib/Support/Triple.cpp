@@ -60,6 +60,9 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case renderscript64: return "renderscript64";
   case riscv32:        return "riscv32";
   case riscv64:        return "riscv64";
+  case sayac:        return "sayac";
+  case m88k:           return "m88k";
+  case m88kel:         return "m88kel";
   case shave:          return "shave";
   case sparc:          return "sparc";
   case sparcel:        return "sparcel";
@@ -152,6 +155,11 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
 
   case riscv32:
   case riscv64:     return "riscv";
+
+  case sayac:     return "sayac";
+
+  case m88k:
+  case m88kel:      return "m88k";
 
   case ve:          return "ve";
   case csky:        return "csky";
@@ -325,6 +333,9 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
     .Case("wasm64", wasm64)
     .Case("renderscript32", renderscript32)
     .Case("renderscript64", renderscript64)
+    .Case("sayac", sayac)
+    .Case("m88k", m88k)
+    .Case("m88kel", m88kel)
     .Case("ve", ve)
     .Case("csky", csky)
     .Default(UnknownArch);
@@ -459,6 +470,9 @@ static Triple::ArchType parseArch(StringRef ArchName) {
     .Case("wasm32", Triple::wasm32)
     .Case("wasm64", Triple::wasm64)
     .Case("csky", Triple::csky)
+    .Case("sayac", Triple::sayac)
+    .Case("m88k", Triple::m88k)
+    .Case("m88kel", Triple::m88kel)
     .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -728,7 +742,11 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::thumbeb:
   case Triple::ve:
   case Triple::xcore:
+  case Triple::sayac:
+  case Triple::m88k:
+  case Triple::m88kel:
     return Triple::ELF;
+
 
   case Triple::ppc64:
   case Triple::ppc:
@@ -1263,6 +1281,7 @@ static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
 
   case llvm::Triple::avr:
   case llvm::Triple::msp430:
+  case llvm::Triple::sayac:
     return 16;
 
   case llvm::Triple::aarch64_32:
@@ -1276,6 +1295,8 @@ static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
   case llvm::Triple::kalimba:
   case llvm::Triple::lanai:
   case llvm::Triple::le32:
+  case llvm::Triple::m88k:
+  case llvm::Triple::m88kel:
   case llvm::Triple::mips:
   case llvm::Triple::mipsel:
   case llvm::Triple::nvptx:
@@ -1346,6 +1367,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::msp430:
   case Triple::systemz:
   case Triple::ve:
+  case Triple::sayac:
     T.setArch(UnknownArch);
     break;
 
@@ -1360,6 +1382,8 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::kalimba:
   case Triple::lanai:
   case Triple::le32:
+  case Triple::m88k:
+  case Triple::m88kel:
   case Triple::mips:
   case Triple::mipsel:
   case Triple::nvptx:
@@ -1412,6 +1436,8 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::hexagon:
   case Triple::kalimba:
   case Triple::lanai:
+  case Triple::m88k:
+  case Triple::m88kel:
   case Triple::msp430:
   case Triple::r600:
   case Triple::shave:
@@ -1419,6 +1445,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::tce:
   case Triple::tcele:
   case Triple::xcore:
+  case Triple::sayac:
     T.setArch(UnknownArch);
     break;
 
@@ -1509,6 +1536,7 @@ Triple Triple::getBigEndianArchVariant() const {
   // drop any arch suffixes.
   case Triple::arm:
   case Triple::thumb:
+  case Triple::sayac:
     T.setArch(UnknownArch);
     break;
 
@@ -1516,6 +1544,7 @@ Triple Triple::getBigEndianArchVariant() const {
   case Triple::bpfel:   T.setArch(Triple::bpfeb);      break;
   case Triple::mips64el:T.setArch(Triple::mips64);     break;
   case Triple::mipsel:  T.setArch(Triple::mips);       break;
+  case Triple::m88kel:  T.setArch(Triple::m88k);       break;
   case Triple::ppcle:   T.setArch(Triple::ppc);        break;
   case Triple::ppc64le: T.setArch(Triple::ppc64);      break;
   case Triple::sparcel: T.setArch(Triple::sparc);      break;
@@ -1546,6 +1575,7 @@ Triple Triple::getLittleEndianArchVariant() const {
 
   case Triple::aarch64_be: T.setArch(Triple::aarch64);  break;
   case Triple::bpfeb:      T.setArch(Triple::bpfel);    break;
+  case Triple::m88k:       T.setArch(Triple::m88kel);   break;
   case Triple::mips64:     T.setArch(Triple::mips64el); break;
   case Triple::mips:       T.setArch(Triple::mipsel);   break;
   case Triple::ppc:        T.setArch(Triple::ppcle);    break;
@@ -1575,6 +1605,7 @@ bool Triple::isLittleEndian() const {
   case Triple::kalimba:
   case Triple::le32:
   case Triple::le64:
+  case Triple::m88kel:
   case Triple::mips64el:
   case Triple::mipsel:
   case Triple::msp430:
@@ -1599,6 +1630,7 @@ bool Triple::isLittleEndian() const {
   case Triple::x86:
   case Triple::x86_64:
   case Triple::xcore:
+  case Triple::sayac:
     return true;
   default:
     return false;

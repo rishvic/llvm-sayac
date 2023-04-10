@@ -424,6 +424,15 @@ enum {
   STO_AARCH64_VARIANT_PCS = 0x80
 };
 
+enum : unsigned {
+  EF_88k_NABI = 0x80000000,     // NOT ABI Compliant
+  EF_88k_M88110 = 0x00000004
+};
+
+enum {
+  #include "ELFRelocs/M88k.def"
+};
+
 // ARM Specific e_flags
 enum : unsigned {
   EF_ARM_SOFT_FLOAT = 0x00000200U,     // Legacy pre EABI_VER5

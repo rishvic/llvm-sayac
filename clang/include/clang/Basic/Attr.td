@@ -370,6 +370,7 @@ def TargetAnyMips : TargetArch<["mips", "mipsel", "mips64", "mips64el"]>;
 def TargetMSP430 : TargetArch<["msp430"]>;
 def TargetRISCV : TargetArch<["riscv32", "riscv64"]>;
 def TargetX86 : TargetArch<["x86"]>;
+def TargetM88k : TargetArch<["m88k"]>;
 def TargetAnyX86 : TargetArch<["x86", "x86_64"]>;
 def TargetWebAssembly : TargetArch<["wasm32", "wasm64"]>;
 def TargetHasDLLImportExport : TargetSpec {

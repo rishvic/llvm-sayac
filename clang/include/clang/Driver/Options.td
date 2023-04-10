@@ -172,6 +172,8 @@ def m_wasm_Features_Driver_Group : OptionGroup<"<wasm driver features group>">,
                                    Group<m_Group>, DocName<"WebAssembly Driver">;
 def m_x86_Features_Group : OptionGroup<"<x86 features group>">,
                            Group<m_Group>, Flags<[CoreOption]>, DocName<"X86">;
+def m_m88k_Features_Group: OptionGroup<"<m88k features group>">,
+                           Group<m_Group>, DocName<"M88k">;
 def m_riscv_Features_Group : OptionGroup<"<riscv features group>">,
                              Group<m_Group>, DocName<"RISCV">;
 
@@ -3762,6 +3764,11 @@ def mnvs : Flag<["-"], "mnvs">, Group<m_hexagon_Features_Group>,
 def mno_nvs : Flag<["-"], "mno-nvs">, Group<m_hexagon_Features_Group>,
   Flags<[CC1Option]>, HelpText<"Disable generation of new-value stores">;
 
+
+// M88k features flags
+def m88000 : Flag<["-"], "m88000">, Group<m_m88k_Features_Group>;
+def m88100 : Flag<["-"], "m88100">, Group<m_m88k_Features_Group>;
+def m88110 : Flag<["-"], "m88110">, Group<m_m88k_Features_Group>;
 
 // X86 feature flags
 def mx87 : Flag<["-"], "mx87">, Group<m_x86_Features_Group>;

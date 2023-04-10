@@ -1,35 +1,22 @@
-//===-- llvm/ADT/Triple.h - Target triple helper class ----------*- C++ -*-===//
+//===-- llvm/ADT/Triple.h ---------------------------------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-//===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_TRIPLE_H
 #define LLVM_ADT_TRIPLE_H
 
 #include "llvm/ADT/Twine.h"
 
-// Some system headers or GCC predefined macros conflict with identifiers in
-// this file.  Undefine them here.
 #undef NetBSD
 #undef mips
 #undef sparc
 
 namespace llvm {
+  class VersionTuple;
 
-class VersionTuple;
-
-/// Triple - Helper class for working with autoconf configuration names. For
-/// historical reasons, we also call these 'triples' (they used to contain
-/// exactly three fields).
-///
-/// Configuration names are strings in the canonical form:
-///   ARCHITECTURE-VENDOR-OPERATING_SYSTEM
-/// or
-///   ARCHITECTURE-VENDOR-OPERATING_SYSTEM-ENVIRONMENT
-///
 /// This class is used for clients which want to support arbitrary
 /// configuration names, but also want to implement certain special
 /// behavior for particular configurations. This class isolates the mapping
@@ -99,7 +86,10 @@ public:
     wasm64,         // WebAssembly with 64-bit pointers
     renderscript32, // 32-bit RenderScript
     renderscript64, // 64-bit RenderScript
-    ve,             // NEC SX-Aurora Vector Engine
+    ve,             // NEC SX-Aurora Vector Engine,
+    sayac,        // Simple Architecture yet ample circuitry
+    m88k,           // M88000 (big endian): m88k
+    m88kel,         // M88000: (little endian) m88kel
     LastArchType = ve
   };
   enum SubArchType {
@@ -781,6 +771,17 @@ public:
     return getArch() == Triple::x86 || getArch() == Triple::x86_64;
   }
 
+  /// Tests whether the target is sayac
+  bool isSAYAC() const {
+    return getArch() == Triple::sayac;
+  }
+
+ /// Tests whether the target is M88k.
+  bool isM88k() const {
+    return getArch() == Triple::m88k;
+  }
+
+
   /// Tests whether the target is VE
   bool isVE() const {
     return getArch() == Triple::ve;
@@ -966,6 +967,5 @@ public:
 };
 
 } // End llvm namespace
-
 
 #endif
