@@ -217,7 +217,6 @@ bool PEI::runOnMachineFunction(MachineFunction &MF) {
   const Function &F = MF.getFunction();
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
-
   RS = TRI->requiresRegisterScavenging(MF) ? new RegScavenger() : nullptr;
   FrameIndexVirtualScavenging = TRI->requiresFrameIndexScavenging(MF);
   ORE = &getAnalysis<MachineOptimizationRemarkEmitterPass>().getORE();
@@ -1114,7 +1113,6 @@ void PEI::insertPrologEpilogCode(MachineFunction &MF) {
   // Add prologue to the function...
   for (MachineBasicBlock *SaveBlock : SaveBlocks)
     TFI.emitPrologue(MF, *SaveBlock);
-
   // Add epilogue to restore the callee-save registers in each exiting block.
   for (MachineBasicBlock *RestoreBlock : RestoreBlocks)
     TFI.emitEpilogue(MF, *RestoreBlock);
@@ -1179,7 +1177,6 @@ void PEI::replaceFrameIndices(MachineFunction &MF) {
     replaceFrameIndices(BB, MF, SPAdj);
     SPState[BB->getNumber()] = SPAdj;
   }
-
   // Handle the unreachable blocks.
   for (auto &BB : MF) {
     if (Reachable.count(&BB))
@@ -1203,14 +1200,27 @@ void PEI::replaceFrameIndices(MachineBasicBlock *BB, MachineFunction &MF,
 
   bool InsideCallSequence = false;
 
+  // for(MachineBasicBlock::iterator I = BB->begin(); I!= BB->end();++I) {
+  //   MachineInstr &MI = *I;
+  //   I->dump();
+  //   dbgs() << MI.getOpcode() << '\n';
+  //   dbgs() << ((TII.isFrameInstr(*I)) ? "True" : "False") << '\n';
+
+    // for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i)
+      // dbgs() << (MI.getOperand(i).isFI() ? "True" : "False") << '\n';
+  // }
+  // return;
+
+  // for (MachineBasicBlock::iterator I = BB->begin(); I != BB->end(); ++I)
+  //   I->dump();
   for (MachineBasicBlock::iterator I = BB->begin(); I != BB->end(); ) {
+    // dbgs() << "Start\n";
     if (TII.isFrameInstr(*I)) {
       InsideCallSequence = TII.isFrameSetup(*I);
       SPAdj += TII.getSPAdjust(*I);
       I = TFI->eliminateCallFramePseudoInstr(MF, *BB, I);
       continue;
     }
-
     MachineInstr &MI = *I;
     bool DoIncr = true;
     bool DidFinishLoop = true;
@@ -1306,7 +1316,8 @@ void PEI::replaceFrameIndices(MachineBasicBlock *BB, MachineFunction &MF,
       DidFinishLoop = false;
       break;
     }
-
+    // I->dump();
+    // dbgs() << "End\n";
     // If we are looking at a call sequence, we need to keep track of
     // the SP adjustment made by each instruction in the sequence.
     // This includes both the frame setup/destroy pseudos (handled above),
@@ -1323,4 +1334,5 @@ void PEI::replaceFrameIndices(MachineBasicBlock *BB, MachineFunction &MF,
     if (RS && FrameIndexEliminationScavenging && DidFinishLoop)
       RS->forward(MI);
   }
+  // for (MachineBasicBlock::iterator I = BB->begin(); I != BB->end();++I) I->dump();
 }

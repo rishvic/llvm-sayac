@@ -16,39 +16,25 @@
 include "llvm/Target/Target.td"
 
 //===----------------------------------------------------------------------===//
-// M88k subtarget features.
-//===----------------------------------------------------------------------===//
-
-def FeatureGraphics : SubtargetFeature<"graphics", "HasGraphics", "true",
-                                       "has graphics instructions", []>;
-
-def Proc88000       : SubtargetFeature<"mc88000", "M88kProc", "MC88000",
-                                       "Generic 88000 processor", []>;
-def Proc88100       : SubtargetFeature<"mc88100", "M88kProc", "MC88100",
-                                       "Motorola 88100 processor", []>;
-def Proc88110       : SubtargetFeature<"mc88110", "M88kProc", "MC88110",
-                                       "Motorola 88110 processor",
-                                       [FeatureGraphics]>;
+// M88k Subtarget features.
+//
 
 //===----------------------------------------------------------------------===//
 // Register File, Calling Conv, Instruction Descriptions
 //===----------------------------------------------------------------------===//
 
 include "M88kRegisterInfo.td"
-include "GISel/M88kRegisterBanks.td"
 include "M88kCallingConv.td"
+include "M88kSchedule.td"
 include "M88kInstrFormats.td"
 include "M88kInstrInfo.td"
-include "M88kCombine.td"
-include "M88kSchedule.td"
 
 //===----------------------------------------------------------------------===//
 // M88k processors supported.
 //===----------------------------------------------------------------------===//
 
-def : ProcessorModel<"mc88000", M88100SchedModel, [Proc88000]>;
-def : ProcessorModel<"mc88100", M88100SchedModel, [Proc88100]>;
-def : ProcessorModel<"mc88110", M88110SchedModel, [Proc88110]>;
+def : ProcessorModel<"mc88100", M88kSchedModel, []>;
+def : ProcessorModel<"mc88110", M88kSchedModel, []>;
 
 //===----------------------------------------------------------------------===//
 // Declare the target which we are implementing
@@ -58,7 +44,6 @@ def M88kInstrInfo : InstrInfo;
 def M88kAsmParser : AsmParser;
 def M88kAsmParserVariant : AsmParserVariant {
   let RegisterPrefix = "%";
-  let TokenizingCharacters = "[]<>*!";
 }
 
 def M88kAsmWriter : AsmWriter {

@@ -40,6 +40,29 @@ public:
 
   // Return the SAYACRegisterInfo, which this class owns.
   const SAYACRegisterInfo &getRegisterInfo() const { return RI; }
+
+  void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+                   const DebugLoc &DL, MCRegister DstReg, MCRegister SrcReg,
+                   bool KillSrc) const override;
+  // Materializes the given integer Val into DstReg.
+  void movImm(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
+              const DebugLoc &DL, Register DstReg, uint16_t Val,
+              MachineInstr::MIFlag Flag = MachineInstr::NoFlags) const;
+
+  void expandBranch(MachineInstr &MI, unsigned BranchInstr, bool isUnsignedCmp) const;
+
+  virtual bool expandPostRAPseudo(MachineInstr &MI) const override;
+  virtual void
+  storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
+                      Register SrcReg, bool isKill, int FrameIndex,
+                      const TargetRegisterClass *RC,
+                      const TargetRegisterInfo *TRI) const override;
+
+  virtual void
+  loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
+                       Register DestReg, int FrameIndex,
+                       const TargetRegisterClass *RC,
+                       const TargetRegisterInfo *TRI) const override;
 };
 
 } // end namespace llvm

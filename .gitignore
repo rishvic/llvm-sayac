@@ -27,6 +27,9 @@
 # Nested build directory
 /build*
 
+# Nested relbuild directory
+/relbuild*
+
 #==============================================================================#
 # Explicit files to ignore (only matches one).
 #==============================================================================#

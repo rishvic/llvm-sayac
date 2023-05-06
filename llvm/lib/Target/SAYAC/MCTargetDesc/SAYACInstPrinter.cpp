@@ -12,6 +12,7 @@
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
@@ -31,7 +32,7 @@ void SAYACInstPrinter::printOperand(const MCInst *MI, int OpNum,
     if (!MO.getReg())
       O << '0';
     else
-      O << '%' << getRegisterName(MO.getReg());
+      O << getRegisterName(MO.getReg());
   } else if (MO.isImm())
     O << MO.getImm();
   else if (MO.isExpr())
@@ -46,7 +47,7 @@ void SAYACInstPrinter::printOperand(const MCOperand &MO, const MCAsmInfo *MAI,
     if (!MO.getReg())
       O << '0';
     else
-      O << '%' << getRegisterName(MO.getReg());
+      O << getRegisterName(MO.getReg());
   } else if (MO.isImm())
     O << MO.getImm();
   else if (MO.isExpr())
@@ -112,13 +113,14 @@ void SAYACInstPrinter::printPCRelOperand(const MCInst *MI, uint64_t Address,
 void SAYACInstPrinter::printInst(const MCInst *MI, uint64_t Address,
                                 StringRef Annot, const MCSubtargetInfo &STI,
                                 raw_ostream &O) {
+                                  // MI->dump();
   printInstruction(MI, Address, STI, O);
   printAnnotation(O, Annot);
                                 }
 
 // Print a 'memsrc' operand which is a (Register, Offset) pair.
 void SAYACInstPrinter::printAddrModeMemSrc(const MCInst *MI, unsigned OpNum,
-                                         raw_ostream &O) {
+                                         const MCSubtargetInfo &STI, raw_ostream &O) {
   const MCOperand &Op1 = MI->getOperand(OpNum);
   // const MCOperand &Op2 = MI->getOperand(OpNum + 1);
   O << "[";
@@ -129,4 +131,8 @@ void SAYACInstPrinter::printAddrModeMemSrc(const MCInst *MI, unsigned OpNum,
   //   O << ", #" << Offset;
   // }
   O << "]";
+}
+
+const char *SAYACInstPrinter::getRegisterName(unsigned RegNo) {
+  return getRegisterName(RegNo, 0);
 }

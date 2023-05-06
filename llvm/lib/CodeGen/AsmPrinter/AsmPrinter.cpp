@@ -3169,6 +3169,7 @@ void AsmPrinter::emitBasicBlockStart(const MachineBasicBlock &MBB) {
 
     // MBBs can have their address taken as part of CodeGen without having
     // their corresponding BB's address taken in IR
+    
     if (BB->hasAddressTaken())
       for (MCSymbol *Sym : MMI->getAddrLabelSymbolToEmit(BB))
         OutStreamer->emitLabel(Sym);

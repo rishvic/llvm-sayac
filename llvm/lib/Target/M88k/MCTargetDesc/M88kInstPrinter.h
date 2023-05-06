@@ -14,7 +14,6 @@
 #define LLVM_LIB_TARGET_M88K_MCTARGETDESC_M88KINSTPRINTER_H
 
 #include "llvm/MC/MCInstPrinter.h"
-#include "llvm/MC/MCRegister.h"
 #include <cstdint>
 
 namespace llvm {
@@ -32,7 +31,7 @@ public:
   std::pair<const char *, uint64_t> getMnemonic(const MCInst *MI) override;
   void printInstruction(const MCInst *MI, uint64_t Address,
                         const MCSubtargetInfo &STI, raw_ostream &O);
-  static const char *getRegisterName(MCRegister RegNo);
+  static const char *getRegisterName(unsigned RegNo);
 
   // Print the given operand.
   void printOperand(const MCInst *MI, int OpNum, const MCSubtargetInfo &STI,
@@ -42,18 +41,12 @@ public:
 
   void printU5ImmOperand(const MCInst *MI, int OpNum,
                          const MCSubtargetInfo &STI, raw_ostream &O);
+  void printU5ImmOOperand(const MCInst *MI, int OpNum,
+                          const MCSubtargetInfo &STI, raw_ostream &O);
+  void printU10ImmWOOperand(const MCInst *MI, int OpNum,
+                            const MCSubtargetInfo &STI, raw_ostream &O);
   void printU16ImmOperand(const MCInst *MI, int OpNum,
                           const MCSubtargetInfo &STI, raw_ostream &O);
-  void printVec9Operand(const MCInst *MI, int OpNum, const MCSubtargetInfo &STI,
-                        raw_ostream &O);
-  void printBFWidthOperand(const MCInst *MI, int OpNum,
-                           const MCSubtargetInfo &STI, raw_ostream &O);
-  void printBFOffsetOperand(const MCInst *MI, int OpNum,
-                            const MCSubtargetInfo &STI, raw_ostream &O);
-  void printPixelRotOperand(const MCInst *MI, int OpNum,
-                            const MCSubtargetInfo &STI, raw_ostream &O);
-  void printCCodeOperand(const MCInst *MI, int OpNum,
-                         const MCSubtargetInfo &STI, raw_ostream &O);
   void printPCRelOperand(const MCInst *MI, uint64_t Address, int OpNum,
                          const MCSubtargetInfo &STI, raw_ostream &O);
 

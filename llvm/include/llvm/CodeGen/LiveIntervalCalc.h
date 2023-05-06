@@ -52,6 +52,7 @@ public:
   /// All uses must be jointly dominated by existing liveness.  PHI-defs are
   /// inserted as needed to preserve SSA form.
   void extendToUses(LiveRange &LR, MCRegister PhysReg) {
+    // dbgs() << "FoundErrors5" << '\n';
     extendToUses(LR, PhysReg, LaneBitmask::getAll());
   }
 

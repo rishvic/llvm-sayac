@@ -10,8 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "MCTargetDesc/M88kMCExpr.h"
-#include "MCTargetDesc/M88kMCFixups.h"
+//#include "MCTargetDesc/M88kMCFixups.h"
 #include "MCTargetDesc/M88kMCTargetDesc.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/MC/MCCodeEmitter.h"
@@ -22,7 +21,6 @@
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
@@ -36,12 +34,13 @@ namespace {
 
 class M88kMCCodeEmitter : public MCCodeEmitter {
   const MCInstrInfo &MCII;
+  const MCRegisterInfo &MRI;
   MCContext &Ctx;
 
 public:
-  M88kMCCodeEmitter(const MCInstrInfo &MCII,
+  M88kMCCodeEmitter(const MCInstrInfo &MCII, const MCRegisterInfo &MRI,
                     MCContext &Ctx)
-      : MCII(MCII), Ctx(Ctx) {}
+      : MCII(MCII), MRI(MRI), Ctx(Ctx) {}
 
   ~M88kMCCodeEmitter() override = default;
 
@@ -63,9 +62,6 @@ public:
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI) const;
 
-  unsigned getPC16Encoding(const MCInst &MI, unsigned OpNo,
-                           SmallVectorImpl<MCFixup> &Fixups,
-                           const MCSubtargetInfo &STI) const;
   unsigned getPC26Encoding(const MCInst &MI, unsigned OpNo,
                            SmallVectorImpl<MCFixup> &Fixups,
                            const MCSubtargetInfo &STI) const;
@@ -84,69 +80,21 @@ void M88kMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
     OS << static_cast<uint8_t>((Bits >> I) & 0xff);
 }
 
-static M88k::FixupKind FixupKind(const MCExpr *Expr) {
-  if (const M88kMCExpr *McExpr = dyn_cast<M88kMCExpr>(Expr)) {
-    M88kMCExpr::VariantKind ExprKind = McExpr->getKind();
-    switch (ExprKind) {
-    case M88kMCExpr::VK_None:
-      return M88k::FK_88K_NONE;
-    case M88kMCExpr::VK_ABS_HI:
-      return M88k::FK_88K_HI;
-    case M88kMCExpr::VK_ABS_LO:
-      return M88k::FK_88K_LO;
-    }
-  }
-  return M88k::FixupKind(0);
-}
-
 unsigned
 M88kMCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
                                      SmallVectorImpl<MCFixup> &Fixups,
                                      const MCSubtargetInfo &STI) const {
   if (MO.isReg())
-    return Ctx.getRegisterInfo()->getEncodingValue(MO.getReg());
+    return MRI.getEncodingValue(MO.getReg());
   if (MO.isImm())
     return static_cast<uint64_t>(MO.getImm());
-
-  // MO must be an expression
-  assert(MO.isExpr() && "Expected MCExpr");
-  const MCExpr *Expr = MO.getExpr();
-
-  assert(isa<M88kMCExpr>(Expr) && "Expected M88kMCExpr");
-
-  // All instructions follow the pattern that the expr has an offset of 2 from
-  // the begin of the instruction.
-  const uint32_t Offset = 2;
-  // Push fixup (all info is contained within)
-  Fixups.push_back(MCFixup::create(Offset, Expr, MCFixupKind(FixupKind(Expr))));
-  return 0;
-}
-
-unsigned M88kMCCodeEmitter::getPC16Encoding(const MCInst &MI, unsigned OpNo,
-                                            SmallVectorImpl<MCFixup> &Fixups,
-                                            const MCSubtargetInfo &STI) const {
-  const MCOperand &MO = MI.getOperand(OpNo);
-  assert(MO.isImm() || MO.isExpr() && "Expected imm or MCExpr");
-
-  const MCExpr *Expr =
-      MO.isImm() ? MCConstantExpr::create(MO.getImm(), Ctx) : MO.getExpr();
-
-  Fixups.push_back(MCFixup::create(
-      0, Expr, static_cast<MCFixupKind>(M88k::FK_88K_DISP16), MI.getLoc()));
-  return 0;
+  llvm_unreachable("Unexpected operand type!");
 }
 
 unsigned M88kMCCodeEmitter::getPC26Encoding(const MCInst &MI, unsigned OpNo,
                                             SmallVectorImpl<MCFixup> &Fixups,
                                             const MCSubtargetInfo &STI) const {
-  const MCOperand &MO = MI.getOperand(OpNo);
-  assert(MO.isImm() || MO.isExpr() && "Expected imm or MCExpr");
-
-  const MCExpr *Expr =
-      MO.isImm() ? MCConstantExpr::create(MO.getImm(), Ctx) : MO.getExpr();
-
-  Fixups.push_back(MCFixup::create(
-      0, Expr, static_cast<MCFixupKind>(M88k::FK_88K_DISP26), MI.getLoc()));
+  // TODO Implement.
   return 0;
 }
 
@@ -154,6 +102,7 @@ unsigned M88kMCCodeEmitter::getPC26Encoding(const MCInst &MI, unsigned OpNo,
 #include "M88kGenMCCodeEmitter.inc"
 
 MCCodeEmitter *llvm::createM88kMCCodeEmitter(const MCInstrInfo &MCII,
+                                             const MCRegisterInfo &MRI,
                                              MCContext &Ctx) {
-  return new M88kMCCodeEmitter(MCII, Ctx);
+  return new M88kMCCodeEmitter(MCII, MRI, Ctx);
 }

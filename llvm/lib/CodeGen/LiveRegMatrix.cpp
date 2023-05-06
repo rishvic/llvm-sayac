@@ -80,6 +80,7 @@ template <typename Callable>
 static bool foreachUnit(const TargetRegisterInfo *TRI,
                         LiveInterval &VRegInterval, MCRegister PhysReg,
                         Callable Func) {
+  // dbgs() << "FoundErrors2" << '\n';
   if (VRegInterval.hasSubRanges()) {
     for (MCRegUnitMaskIterator Units(PhysReg, TRI); Units.isValid(); ++Units) {
       unsigned Unit = (*Units).first;
@@ -166,7 +167,7 @@ bool LiveRegMatrix::checkRegUnitInterference(LiveInterval &VirtReg,
   if (VirtReg.empty())
     return false;
   CoalescerPair CP(VirtReg.reg(), PhysReg, *TRI);
-
+  // dbgs() << "FoundErrors1" << '\n';
   bool Result = foreachUnit(TRI, VirtReg, PhysReg, [&](unsigned Unit,
                                                        const LiveRange &Range) {
     const LiveRange &UnitRange = LIS->getRegUnit(Unit);
@@ -190,7 +191,7 @@ LiveRegMatrix::checkInterference(LiveInterval &VirtReg, MCRegister PhysReg) {
   // Regmask interference is the fastest check.
   if (checkRegMaskInterference(VirtReg, PhysReg))
     return IK_RegMask;
-
+  
   // Check for fixed interference.
   if (checkRegUnitInterference(VirtReg, PhysReg))
     return IK_RegUnit;

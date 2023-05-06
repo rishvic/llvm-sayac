@@ -765,6 +765,7 @@ Register RAGreedy::tryAssign(LiveInterval &VirtReg,
                              const SmallVirtRegSet &FixedRegisters) {
   Register PhysReg;
   for (auto I = Order.begin(), E = Order.end(); I != E && !PhysReg; ++I) {
+    // if((*I).id() <= 7) { continue;}
     assert(*I);
     if (!Matrix->checkInterference(VirtReg, *I)) {
       if (I.isHint())

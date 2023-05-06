@@ -8,7 +8,6 @@
 
 #include "MCTargetDesc/M88kInstPrinter.h"
 #include "MCTargetDesc/M88kMCTargetDesc.h"
-#include "MCTargetDesc/M88kTargetStreamer.h"
 #include "TargetInfo/M88kTargetInfo.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -20,15 +19,14 @@
 #include "llvm/MC/MCParser/MCAsmParser.h"
 #include "llvm/MC/MCParser/MCParsedAsmOperand.h"
 #include "llvm/MC/MCParser/MCTargetAsmParser.h"
-#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCSymbol.h"
-#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/SMLoc.h"
+#include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
 #include <cassert>
@@ -59,13 +57,16 @@ class M88kOperand : public MCParsedAsmOperand {
     OpKind_Token,
     OpKind_Reg,
     OpKind_Imm,
+    OpKind_Mem // Reg+Imm, Reg+Reg, Reg+(Reg<<(1,2,4,8))
   };
 
   OperandKind Kind;
   SMLoc StartLoc, EndLoc;
 
+  // A string of length Length, starting at Data.
   struct TokenOp {
-    StringRef Token;
+    const char *Data;
+    unsigned Length;
   };
 
   struct RegOp {
@@ -73,7 +74,7 @@ class M88kOperand : public MCParsedAsmOperand {
   };
 
   union {
-    TokenOp Tok;
+    TokenOp Token;
     RegOp Reg;
     const MCExpr *Imm;
   };
@@ -116,18 +117,19 @@ public:
     return Imm;
   }
 
+  bool isMem() const override { return Kind == OpKind_Mem; }
+
   bool isToken() const override { return Kind == OpKind_Token; }
 
   StringRef getToken() const {
     assert(isToken() && "Not a token");
-    return Tok.Token;
+    return StringRef(Token.Data, Token.Length);
   }
-
-  bool isMem() const override { return false; }
 
   static std::unique_ptr<M88kOperand> createToken(StringRef Str, SMLoc Loc) {
     auto Op = std::make_unique<M88kOperand>(OpKind_Token, Loc, Loc);
-    Op->Tok.Token = Str;
+    Op->Token.Data = Str.data();
+    Op->Token.Length = Str.size();
     return Op;
   }
 
@@ -157,35 +159,12 @@ public:
     addExpr(Inst, getImm());
   }
 
-  void addBFWidthOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands");
-    addExpr(Inst, getImm());
-  }
-
-  void addBFOffsetOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands");
-    addExpr(Inst, getImm());
-  }
-
-  void addPixelRotOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands");
-    addExpr(Inst, getImm());
-  }
-
-  void addConditionCodeOperands(MCInst &Inst, unsigned N) const {
-    assert(N == 1 && "Invalid number of operands");
-    addExpr(Inst, getImm());
-  }
-
   bool isU5Imm() const { return isImm(0, 31); }
+  // TODO
+  bool isU5ImmO() const { return isImm(0, 31); }
+  bool isU10ImmWO() const { return isImm(0, 1023); }
   bool isU16Imm() const { return isImm(0, 65535); }
   bool isS16Imm() const { return isImm(-32768, 32767); }
-  bool isVec9() const { return isImm(0, 511); }
-
-  bool isBFWidth() const { return isImm(0, 31); }
-  bool isBFOffset() const { return isImm(0, 31); }
-  bool isPixelRot() const { return isImm(0, 60); }
-  bool isCCode() const { return isImm(0, 31); }
 
   void print(raw_ostream &OS) const override {
     switch (Kind) {
@@ -196,9 +175,10 @@ public:
       OS << "Token: " << getToken() << "\n";
       break;
     case OpKind_Reg:
-      OS << "Reg: ";
-      OS << "%r"; /*getReg() <<*/
-      OS << "\n";
+      OS << "Reg: %r" << /*getReg() <<*/ "\n";
+      break;
+    case OpKind_Mem:
+      OS << "MemImm: " << /* *getMemOffset() <<*/ "\n";
       break;
     }
   }
@@ -209,41 +189,27 @@ class M88kAsmParser : public MCTargetAsmParser {
 #define GET_ASSEMBLER_HEADER
 #include "M88kGenAsmMatcher.inc"
 
-  M88kTargetStreamer &getTargetStreamer() {
-    assert(getParser().getStreamer().getTargetStreamer() &&
-           "m88k - asm parser does not have a target streamer");
-    MCTargetStreamer &TS = *getParser().getStreamer().getTargetStreamer();
-    return static_cast<M88kTargetStreamer &>(TS);
-  }
-
   bool ParseDirective(AsmToken DirectiveID) override;
+
   bool ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
                         SMLoc NameLoc, OperandVector &Operands) override;
-  bool parseRegister(MCRegister &RegNo, SMLoc &StartLoc,
-                     SMLoc &EndLoc) override;
-  OperandMatchResultTy tryParseRegister(MCRegister &RegNo, SMLoc &StartLoc,
-                                        SMLoc &EndLoc) override;
-  unsigned validateTargetOperandClass(MCParsedAsmOperand &Op,
-                                      unsigned Kind) override;
 
-  bool parseRegister(MCRegister &RegNo, SMLoc &StartLoc, SMLoc &EndLoc,
+  bool ParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLoc) override;
+  bool ParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLoc,
                      bool RestoreOnFailure);
+  OperandMatchResultTy tryParseRegister(unsigned &RegNo, SMLoc &StartLoc,
+                                        SMLoc &EndLoc) override;
+
   bool parseOperand(OperandVector &Operands, StringRef Mnemonic);
-  bool parseScaledRegister(OperandVector &Operands);
 
-  OperandMatchResultTy parseBFWidth(OperandVector &Operands);
-  OperandMatchResultTy parseBFOffset(OperandVector &Operands);
-  OperandMatchResultTy parsePixelRot(OperandVector &Operands);
-  OperandMatchResultTy parseConditionCode(OperandVector &Operands);
-
-  OperandMatchResultTy parsePCRel(OperandVector &Operands, unsigned Bits);
-
+  OperandMatchResultTy parseImmWO(OperandVector &Operands);
   OperandMatchResultTy parsePCRel16(OperandVector &Operands) {
-    return parsePCRel(Operands, 18);
+    // return parsePCRel(Operands, -(1LL << 16), (1LL << 16) - 1, false);
+    return MatchOperand_ParseFail;
   }
 
   OperandMatchResultTy parsePCRel26(OperandVector &Operands) {
-    return parsePCRel(Operands, 28);
+    return MatchOperand_ParseFail;
   }
 
   bool MatchAndEmitInstruction(SMLoc IdLoc, unsigned &Opcode,
@@ -252,12 +218,6 @@ class M88kAsmParser : public MCTargetAsmParser {
                                bool MatchingInlineAsm) override;
 
 public:
-  enum M88kMatchResultTy {
-    Match_Dummy = FIRST_TARGET_MATCH_RESULT_TY,
-#define GET_OPERAND_DIAGNOSTIC_TYPES
-#include "M88kGenAsmMatcher.inc"
-  };
-
   M88kAsmParser(const MCSubtargetInfo &STI, MCAsmParser &Parser,
                 const MCInstrInfo &MII, const MCTargetOptions &Options)
       : MCTargetAsmParser(Options, STI, MII), Parser(Parser),
@@ -281,66 +241,7 @@ private:
 #define GET_MNEMONIC_SPELL_CHECKER
 #include "M88kGenAsmMatcher.inc"
 
-unsigned M88kAsmParser::validateTargetOperandClass(MCParsedAsmOperand &AsmOp,
-                                                   unsigned Kind) {
-  if (Kind == MCK_GPR64RC && AsmOp.isReg()) {
-    switch (AsmOp.getReg()) {
-    case M88k::R0:
-    case M88k::R2:
-    case M88k::R4:
-    case M88k::R6:
-    case M88k::R8:
-    case M88k::R10:
-    case M88k::R12:
-    case M88k::R14:
-    case M88k::R16:
-    case M88k::R18:
-    case M88k::R20:
-    case M88k::R22:
-    case M88k::R24:
-    case M88k::R26:
-    case M88k::R28:
-    case M88k::R30:
-      return Match_Success;
-    case M88k::R1:
-    case M88k::R3:
-    case M88k::R5:
-    case M88k::R7:
-    case M88k::R9:
-    case M88k::R11:
-    case M88k::R13:
-    case M88k::R15:
-    case M88k::R17:
-    case M88k::R19:
-    case M88k::R21:
-    case M88k::R23:
-    case M88k::R25:
-    case M88k::R27:
-    case M88k::R29:
-    case M88k::R31:
-      // TODO Add option to flag odd registers.
-      return Match_Success;
-    default:
-      return Match_InvalidOperand;
-    }
-  }
-
-  return Match_InvalidOperand;
-}
-
-bool M88kAsmParser::ParseDirective(AsmToken DirectiveID) {
-  StringRef IDVal = DirectiveID.getIdentifier();
-
-  if (IDVal == ".requires_88110") {
-    MCSubtargetInfo &STI = copySTI();
-    STI.setDefaultFeatures(/*CPU*/ "mc88110", /*TuneCPU*/ "mc88110", "");
-    setAvailableFeatures(ComputeAvailableFeatures(STI.getFeatureBits()));
-    getTargetStreamer().emitDirectiveRequires881100();
-    return false;
-  }
-
-  return true;
-}
+bool M88kAsmParser::ParseDirective(AsmToken DirectiveID) { return true; }
 
 bool M88kAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
                                      SMLoc NameLoc, OperandVector &Operands) {
@@ -349,43 +250,22 @@ bool M88kAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
 
   // Read the remaining operands.
   if (getLexer().isNot(AsmToken::EndOfStatement)) {
-
     // Read the first operand.
     if (parseOperand(Operands, Name)) {
-      return Error(getLexer().getLoc(), "expected operand");
+      return true;
     }
 
-    // Read the second operand.
-    if (getLexer().is(AsmToken::Comma)) {
+    // Read any subsequent operands.
+    while (getLexer().is(AsmToken::Comma)) {
       Parser.Lex();
       if (parseOperand(Operands, Name)) {
-        return Error(getLexer().getLoc(), "expected operand");
-      }
-
-      // Read the third operand or a scaled register.
-      if (getLexer().is(AsmToken::Comma)) {
-        Parser.Lex();
-        if (getLexer().is(AsmToken::Less) && Name == "rot")
-          Operands.push_back(M88kOperand::createToken("<", Parser.getTok().getLoc()));
-
-        if (parseOperand(Operands, Name)) {
-          return Error(getLexer().getLoc(), "expected register or immediate");
-        }
-        // Parse bitfield width
-        if (getLexer().is(AsmToken::Less)) {
-          Operands.push_back(M88kOperand::createToken("<", Parser.getTok().getLoc()));
-          if (parseOperand(Operands, Name)) {
-            return Error(getLexer().getLoc(), "expected bitfield offset");
-          }
-        }
-      } else if (getLexer().is(AsmToken::LBrac)) {
-        if (parseScaledRegister(Operands))
-          return Error(getLexer().getLoc(), "expected scaled register operand");
+        return true;
       }
     }
-
-    if (getLexer().isNot(AsmToken::EndOfStatement))
-      return Error(getLexer().getLoc(), "unexpected token in argument list");
+    if (getLexer().isNot(AsmToken::EndOfStatement)) {
+      SMLoc Loc = getLexer().getLoc();
+      return Error(Loc, "unexpected token in argument list");
+    }
   }
 
   // Consume the EndOfStatement.
@@ -397,9 +277,8 @@ bool M88kAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
   // Invoke a custom associated parser.
   OperandMatchResultTy Result = MatchOperandParserImpl(Operands, Mnemonic);
 
-  if (Result == MatchOperand_Success) {
+  if (Result == MatchOperand_Success)
     return Result;
-  }
   if (Result == MatchOperand_ParseFail) {
     Parser.eatToEndOfStatement();
     return Result;
@@ -408,9 +287,9 @@ bool M88kAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
 
   // Check if it is a register.
   if (Lexer.is(AsmToken::Percent)) {
-    MCRegister RegNo;
+    unsigned RegNo;
     SMLoc StartLoc, EndLoc;
-    if (parseRegister(RegNo, StartLoc, EndLoc, /*RestoreOnFailure=*/false))
+    if (ParseRegister(RegNo, StartLoc, EndLoc))
       return true;
     Operands.push_back(M88kOperand::createReg(RegNo, StartLoc, EndLoc));
     return false;
@@ -426,190 +305,59 @@ bool M88kAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
     Operands.push_back(M88kOperand::createImm(Expr, StartLoc, EndLoc));
     return false;
   }
+llvm::dbgs() << "parseOperand failed (" << Mnemonic << ")\n";
   // Failure
   return true;
 }
 
-OperandMatchResultTy M88kAsmParser::parseBFWidth(OperandVector &Operands) {
-  // Parses the width of a bitfield. If empty and followed by <O>, then it is 0.
-  // If not followed by <O>, then it is the offset, and the width is 0.
+OperandMatchResultTy M88kAsmParser::parseImmWO(OperandVector &Operands) {
+  // Parses operands like 5<6> and <7>.
   MCContext &Ctx = getContext();
   SMLoc StartLoc = Parser.getTok().getLoc();
-  bool HasWidth = false;
-  int64_t Width = 0;
-  bool IsReallyOffset = false;
+  Optional<AsmToken> WidthTok;
+  int64_t Width = 0, Offset;
   if (Lexer.is(AsmToken::Integer)) {
+    WidthTok = Parser.getTok();
     Width = Parser.getTok().getIntVal();
-    HasWidth = true;
     Parser.Lex();
   }
   if (Lexer.isNot(AsmToken::Less)) {
-    if (!HasWidth)
-      return MatchOperand_NoMatch;
-    IsReallyOffset = true;
-  }
-
-  const MCExpr *Expr = MCConstantExpr::create(Width, Ctx);
-  SMLoc EndLoc =
-      SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
-  if (IsReallyOffset) {
-    Operands.push_back(M88kOperand::createImm(MCConstantExpr::create(0, Ctx),
-                                              StartLoc, EndLoc));
-    Operands.push_back(M88kOperand::createToken("<", Parser.getTok().getLoc()));
-    Operands.push_back(M88kOperand::createImm(Expr, StartLoc, EndLoc));
-    Operands.push_back(M88kOperand::createToken(">", Parser.getTok().getLoc()));
-  } else
-    Operands.push_back(M88kOperand::createImm(Expr, StartLoc, EndLoc));
-
-  // Announce match.
-  return MatchOperand_Success;
-}
-
-OperandMatchResultTy M88kAsmParser::parseBFOffset(OperandVector &Operands) {
-  // Parses operands like <7>.
-  MCContext &Ctx = getContext();
-  SMLoc StartLoc = Parser.getTok().getLoc();
-
-  Parser.Lex();
-  if (Lexer.isNot(AsmToken::Integer))
-    return MatchOperand_ParseFail;
-  int64_t Offset = Parser.getTok().getIntVal();
-  Parser.Lex();
-  if (Lexer.isNot(AsmToken::Greater))
-    return MatchOperand_ParseFail;
-  Parser.Lex();
-
-  const MCExpr *Expr = MCConstantExpr::create(Offset, Ctx);
-  SMLoc EndLoc =
-      SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
-  Operands.push_back(M88kOperand::createImm(Expr, StartLoc, EndLoc));
-  Operands.push_back(M88kOperand::createToken(">", Parser.getTok().getLoc()));
-
-  // Announce match.
-  return MatchOperand_Success;
-}
-
-OperandMatchResultTy M88kAsmParser::parsePixelRot(OperandVector &Operands) {
-  // Parses operands like <7>.
-  MCContext &Ctx = getContext();
-  SMLoc StartLoc = Parser.getTok().getLoc();
-
-  if (Lexer.isNot(AsmToken::Less)) {
+    if (WidthTok)
+      Lexer.UnLex(WidthTok.getValue());
     return MatchOperand_NoMatch;
   }
   Parser.Lex();
   if (Lexer.isNot(AsmToken::Integer))
     return MatchOperand_ParseFail;
-  int64_t RotateSize = Parser.getTok().getIntVal();
+  Offset = Parser.getTok().getIntVal();
   Parser.Lex();
   if (Lexer.isNot(AsmToken::Greater))
     return MatchOperand_ParseFail;
   Parser.Lex();
 
-  if (RotateSize & 0x3) {
-    Warning(StartLoc, "Removed lower 2 bits of expression");
-    RotateSize &= ~0x3;
-  }
-  const MCExpr *Expr = MCConstantExpr::create(RotateSize, Ctx);
-  SMLoc EndLoc =
-      SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
+  // TODO Check values.
+  int64_t Val = Width << 5 | Offset;
+  const MCExpr *Expr = MCConstantExpr::create(Val, Ctx);
+  SMLoc EndLoc = Parser.getTok().getLoc();
   Operands.push_back(M88kOperand::createImm(Expr, StartLoc, EndLoc));
 
-  // Announce match.
+  // Announce no match.
   return MatchOperand_Success;
 }
 
-OperandMatchResultTy
-M88kAsmParser::parseConditionCode(OperandVector &Operands) {
-  // Parses condition codes for brcond/tcond.
-  SMLoc StartLoc = getLexer().getLoc();
-  unsigned CC;
-  if (Lexer.is(AsmToken::Integer)) {
-    int64_t CCVal = Lexer.getTok().getIntVal();
-    if (isUInt<5>(CCVal))
-      return MatchOperand_NoMatch;
-    CC = static_cast<unsigned>(CCVal);
-  } else {
-    CC = StringSwitch<unsigned>(Parser.getTok().getString())
-             .Case("eq0", 0x2)
-             .Case("ne0", 0xd)
-             .Case("gt0", 0x1)
-             .Case("lt0", 0xc)
-             .Case("ge0", 0x3)
-             .Case("le0", 0xe)
-             .Default(0);
-    if (CC == 0)
-      return MatchOperand_NoMatch;
-  }
-  Parser.Lex();
-
-  // Create expression.
-  SMLoc EndLoc =
-      SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
-  const MCExpr *CCExpr = MCConstantExpr::create(CC, getContext());
-  Operands.push_back(M88kOperand::createImm(CCExpr, StartLoc, EndLoc));
-
-  return MatchOperand_Success;
-}
-
-OperandMatchResultTy M88kAsmParser::parsePCRel(OperandVector &Operands,
-                                               unsigned Bits) {
-  const MCExpr *Expr;
-  SMLoc StartLoc = Parser.getTok().getLoc();
-  if (getParser().parseExpression(Expr))
-    return MatchOperand_NoMatch;
-
-  const int64_t MinVal = -(1LL << Bits);
-  const int64_t MaxVal = (1LL << Bits) - 1;
-  auto isOutOfRangeConstant = [&](const MCExpr *E) -> bool {
-    if (auto *CE = dyn_cast<MCConstantExpr>(E)) {
-      int64_t Value = CE->getValue();
-      if ((Value & 1) || Value < MinVal || Value > MaxVal)
-        return true;
-    }
-    return false;
-  };
-
-  // For consistency with the GNU assembler, treat immediates as absolute
-  // values. In this case, check only the range.
-  if (auto *CE = dyn_cast<MCConstantExpr>(Expr)) {
-    if (isOutOfRangeConstant(CE)) {
-      Error(StartLoc, "offset out of range");
-      return MatchOperand_ParseFail;
-    }
-  }
-
-
-  // For consistency with the GNU assembler, conservatively assume that a
-  // constant offset must by itself be within the given size range.
-  if (const auto *BE = dyn_cast<MCBinaryExpr>(Expr))
-    if (isOutOfRangeConstant(BE->getLHS()) ||
-        isOutOfRangeConstant(BE->getRHS())) {
-      Error(StartLoc, "offset out of range");
-      return MatchOperand_ParseFail;
-    }
-
-  SMLoc EndLoc =
-      SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
-
-  Operands.push_back(M88kOperand::createImm(Expr, StartLoc, EndLoc));
-
-  return MatchOperand_Success;
-}
-
-// Parses register of form %(r|x|cr|fcr)<No>.
-bool M88kAsmParser::parseRegister(MCRegister &RegNo, SMLoc &StartLoc,
+// Parses register of form %r<No> or %x<No>.
+// TODO Do we need to handle fcrS/crS?
+bool M88kAsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc,
                                   SMLoc &EndLoc, bool RestoreOnFailure) {
   StartLoc = Parser.getTok().getLoc();
 
   // Eat the '%' prefix.
   if (Parser.getTok().isNot(AsmToken::Percent))
-    return true;
-  // return Error(Parser.getTok().getLoc(), "register expected");
+    return Error(Parser.getTok().getLoc(), "register expected");
   const AsmToken &PercentTok = Parser.getTok();
   Parser.Lex();
 
-  // Match the register.
+  // Match the register
   if (Lexer.getKind() != AsmToken::Identifier ||
       (RegNo = MatchRegisterName(Lexer.getTok().getIdentifier())) == 0) {
     if (RestoreOnFailure)
@@ -617,49 +365,21 @@ bool M88kAsmParser::parseRegister(MCRegister &RegNo, SMLoc &StartLoc,
     return Error(StartLoc, "invalid register");
   }
 
-  Parser.Lex(); // Eat identifier token.
+  Parser.Lex(); // Eat identifier token
   EndLoc = Parser.getTok().getLoc();
   return false;
 }
 
-bool M88kAsmParser::parseScaledRegister(OperandVector &Operands) {
-  SMLoc LBracketLoc = Parser.getTok().getLoc();
-
-  // Eat the '[' bracket.
-  if (Lexer.isNot(AsmToken::LBrac))
-    return true;
-  Parser.Lex();
-
-  MCRegister RegNo;
-  SMLoc StartLoc, EndLoc;
-  if (parseRegister(RegNo, StartLoc, EndLoc, /*RestoreOnFailure=*/false))
-    return true;
-
-  // Eat the ']' bracket.
-  if (Lexer.isNot(AsmToken::RBrac))
-    return true;
-
-  SMLoc RBracLoc = Parser.getTok().getLoc();
-  Parser.Lex();
-
-  Operands.push_back(M88kOperand::createToken("[", LBracketLoc));
-  Operands.push_back(M88kOperand::createReg(RegNo, StartLoc, EndLoc));
-  Operands.push_back(M88kOperand::createToken("]", RBracLoc));
-
-  return false;
-}
-
-bool M88kAsmParser::parseRegister(MCRegister &RegNo, SMLoc &StartLoc,
+bool M88kAsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc,
                                   SMLoc &EndLoc) {
-  return parseRegister(RegNo, StartLoc, EndLoc,
-                       /*RestoreOnFailure=*/false);
+  return ParseRegister(RegNo, StartLoc, EndLoc, /*RestoreOnFailure=*/false);
 }
 
-OperandMatchResultTy M88kAsmParser::tryParseRegister(MCRegister &RegNo,
+OperandMatchResultTy M88kAsmParser::tryParseRegister(unsigned &RegNo,
                                                      SMLoc &StartLoc,
                                                      SMLoc &EndLoc) {
-  bool Result = parseRegister(RegNo, StartLoc, EndLoc,
-                              /*RestoreOnFailure=*/true);
+  bool Result =
+      ParseRegister(RegNo, StartLoc, EndLoc, /*RestoreOnFailure=*/true);
   bool PendingErrors = getParser().hasPendingError();
   getParser().clearPendingErrors();
   if (PendingErrors)
@@ -675,34 +395,28 @@ bool M88kAsmParser::MatchAndEmitInstruction(SMLoc IdLoc, unsigned &Opcode,
                                             uint64_t &ErrorInfo,
                                             bool MatchingInlineAsm) {
   MCInst Inst;
+  unsigned MatchResult;
   FeatureBitset MissingFeatures;
-  unsigned MatchResult = MatchInstructionImpl(
-      Operands, Inst, ErrorInfo, MissingFeatures, MatchingInlineAsm);
-
+  MatchResult = MatchInstructionImpl(Operands, Inst, ErrorInfo, MissingFeatures,
+                                     MatchingInlineAsm);
   switch (MatchResult) {
   case Match_Success:
     Inst.setLoc(IdLoc);
     Out.emitInstruction(Inst, getSTI());
     return false;
-  case Match_MissingFeature: {
-    assert(MissingFeatures.any() && "Unknown missing features!");
-    bool FirstFeature = true;
-    std::string Msg = "instruction requires the following:";
-    for (unsigned i = 0, e = MissingFeatures.size(); i != e; ++i) {
-      if (MissingFeatures[i]) {
-        Msg += FirstFeature ? " " : ", ";
-        Msg += getSubtargetFeatureName(i);
-        FirstFeature = false;
-      }
-    }
-    return Error(IdLoc, Msg);
-  }
+  case Match_MissingFeature:
+    // Currently no features are implemented.
+    return Error(IdLoc, "Instruction use requires option to be enabled");
   case Match_InvalidOperand: {
     SMLoc ErrorLoc = IdLoc;
     if (ErrorInfo != ~0U) {
       if (ErrorInfo >= Operands.size())
         return Error(IdLoc, "Too few operands for instruction");
-      ErrorLoc = ((M88kOperand &)*Operands[ErrorInfo]).getStartLoc();
+
+      // TODO
+      // ErrorLoc = ((M88kOperand &)*Operands[ErrorInfo]).getStartLoc();
+      if (ErrorLoc == SMLoc())
+        ErrorLoc = IdLoc;
     }
     return Error(ErrorLoc, "Invalid operand for instruction");
   }
@@ -714,24 +428,6 @@ bool M88kAsmParser::MatchAndEmitInstruction(SMLoc IdLoc, unsigned &Opcode,
                  Op.getLocRange()*/);
   }
   }
-
-  // Handle the case when the error message is of specific type other than the
-  // generic Match_InvalidOperand, and the corresponding operand is missing.
-  if (MatchResult > FIRST_TARGET_MATCH_RESULT_TY) {
-    SMLoc ErrorLoc = IdLoc;
-    if (ErrorInfo != ~0ULL && ErrorInfo >= Operands.size())
-      return Error(ErrorLoc, "too few operands for instruction");
-  }
-
-  switch (MatchResult) {
-  case Match_InvalidBitfieldWidth:
-  case Match_InvalidBitfieldOffset:
-  case Match_InvalidPixelRotationSize: {
-    SMLoc ErrorLoc = ((M88kOperand &)*Operands[ErrorInfo]).getStartLoc();
-    return Error(ErrorLoc, getMatchKindDiag((M88kMatchResultTy)MatchResult));
-  }
-  }
-
   llvm_unreachable("Unexpected match type");
 }
 

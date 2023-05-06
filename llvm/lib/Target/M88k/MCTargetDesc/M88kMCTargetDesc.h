@@ -30,6 +30,7 @@ class raw_pwrite_stream;
 class raw_ostream;
 
 MCCodeEmitter *createM88kMCCodeEmitter(const MCInstrInfo &MCII,
+                                       const MCRegisterInfo &MRI,
                                        MCContext &Ctx);
 
 MCAsmBackend *createM88kMCAsmBackend(const Target &T,

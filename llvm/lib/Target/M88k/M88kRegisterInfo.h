@@ -28,21 +28,20 @@ struct M88kRegisterInfo : public M88kGenRegisterInfo {
 
   BitVector getReservedRegs(const MachineFunction &MF) const override;
 
-  bool eliminateFrameIndex(MachineBasicBlock::iterator II, int SPAdj,
+  void eliminateFrameIndex(MachineBasicBlock::iterator II, int SPAdj,
                            unsigned FIOperandNum,
                            RegScavenger *RS = nullptr) const override;
 
   Register getFrameRegister(const MachineFunction &MF) const override;
 
+#if 0
   const uint32_t *getCallPreservedMask(const MachineFunction &MF,
                                        CallingConv::ID CC) const override;
 
-  const TargetRegisterClass *
-  getPointerRegClass(const MachineFunction &MF,
-                     unsigned Kind = 0) const override;
-
-#if 0
   const uint32_t* getRTCallPreservedMask(CallingConv::ID CC) const;
+
+  const TargetRegisterClass *getPointerRegClass(const MachineFunction &MF,
+                                                unsigned Kind) const override;
 
   bool canRealignStack(const MachineFunction &MF) const override;
 #endif

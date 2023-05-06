@@ -51,7 +51,7 @@ public:
     return "SAYAC DAG->DAG Pattern Instruction Selection";
   }
 
-  bool SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset);
+  bool SelectAddr(SDValue Addr, SDValue &Base);
 
   // Override SelectionDAGISel.
   void Select(SDNode *Node) override;
@@ -72,22 +72,23 @@ FunctionPass *llvm::createSAYACISelDag(SAYACTargetMachine &TM,
   return new SAYACDAGToDAGISel(TM, OptLevel);
 }
 
-bool SAYACDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset) {
+bool SAYACDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base) {
   if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
-    EVT PtrVT = getTargetLowering()->getPointerTy(CurDAG->getDataLayout());
-    Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), PtrVT);
-    Offset = CurDAG->getTargetConstant(0, Addr, MVT::i32);
+    // EVT PtrVT = getTargetLowering()->getPointerTy(CurDAG->getDataLayout());
+    Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), MVT::i16);
+    // Offset = CurDAG->getTargetConstant(0, Addr, MVT::i32);
     return true;
   }
-  if (Addr.getOpcode() == ISD::TargetExternalSymbol ||
-      Addr.getOpcode() == ISD::TargetGlobalAddress ||
-      Addr.getOpcode() == ISD::TargetGlobalTLSAddress) {
-    return false; // direct calls.
-  }
+  return false;
+  // if (Addr.getOpcode() == ISD::TargetExternalSymbol ||
+  //     Addr.getOpcode() == ISD::TargetGlobalAddress ||
+  //     Addr.getOpcode() == ISD::TargetGlobalTLSAddress) {
+  //   return false; // direct calls.
+  // }
 
-  Base = Addr;
-  Offset = CurDAG->getTargetConstant(0, Addr, MVT::i32);
-  return true;
+  // Base = Addr;
+  // Offset = CurDAG->getTargetConstant(0, Addr, MVT::i32);
+  // return true;
 }
 
 
@@ -95,8 +96,24 @@ void SAYACDAGToDAGISel::Select(SDNode *Node) {
   // Instruction Selection not handled by the auto-generated tablegen selection
   // should be handled here.
 
-  // dbgs() << (ISD::STORE) << '\n';
+  SDLoc DL(Node);
+  EVT VT = Node->getValueType(0);
 
-  // Select the default instruction.
-  SelectCode(Node);
+  // Node->dump();
+  switch(Node->getOpcode()) {
+    default:
+      break;
+    case ISD::FrameIndex: {
+      SDValue Imm = CurDAG->getTargetConstant(0, DL, MVT::i16);
+      int FI = cast<FrameIndexSDNode>(Node)->getIndex();
+      SDValue TFI = CurDAG->getTargetFrameIndex(FI, VT);
+      ReplaceNode(Node, CurDAG->getMachineNode(SAYAC::FI, DL, VT, TFI, Imm));
+      return;
+    }
+  }
+
+    // Select the default instruction.
+    SelectCode(Node);
+
+  // Node->dump();
 }

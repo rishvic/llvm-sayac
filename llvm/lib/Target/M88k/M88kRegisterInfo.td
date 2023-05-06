@@ -12,118 +12,15 @@ class M88kReg<bits<5> Enc, string n> : Register<n> {
   let Namespace = "M88k";
 }
 
-class M88kCRReg<bits<6> Enc, string n> : Register<n> {
-  let HWEncoding{15-6} = 0;
-  let HWEncoding{5-0} = Enc;
-  let Namespace = "M88k";
-}
-
-class M88kRegWithSubregs<string n, list<Register> subregs>
-  : RegisterWithSubRegs<n, subregs> {
-  let Namespace = "M88k";
-}
-
-// Multiclass to define RegisterClass and RegisterOperand together.
-multiclass M88kRegisterClass<list<ValueType> types, int size, int alignment,
-                             dag regList, bit allocatable = 1, int copycost = 1> {
-  let isAllocatable = allocatable in
-    def RC : RegisterClass<"M88k", types, alignment, regList> {
-      let Size = size;
-      let CopyCost = copycost;
-    }
-  def "" : RegisterOperand<!cast<RegisterClass>(NAME#"RC")> {
-    let DecoderMethod = "decode"#NAME#"RegisterClass";
-  }
-}
-
-let Namespace = "M88k" in {
-  def sub_hi : SubRegIndex<32, 0>;
-  def sub_lo : SubRegIndex<32, 32>;
-}
+// General register
+class GRi<bits<5> Enc, string n> : M88kReg<Enc, n>;
 
 // General-purpose registers
 foreach I = 0-31 in {
-  let isConstant = !eq(I, 0) in
-    def R#I : M88kReg<I, "r"#I>;
+  def R#I : GRi<I, "r"#I>;
 }
 
-// Register pairs.
-// TODO Check let isArtificial = 1
-//let AsmName = "", SubRegIndices = [sub_hi, sub_lo], CoveredBySubRegs = true in {
-//  foreach I = 0-15 in {
-//    defvar Rx = "R" # !mul(2,I);
-//    defvar Ry = "R" # !add(!mul(2,I),1);
-//    def Rx#_#Ry : M88kRegWithSubregs<Rx#_#Ry,
-//                                    [!cast<Register>(Rx), !cast<Register>(Ry)]>;
-//  }
-//}
+def GPR : RegisterClass<"M88k", [i32], 32,
+                            (add (sequence "R%u", 0, 31))>;
 
-defm GPR : M88kRegisterClass<[i32, f32], 32, 32,
-                             (add (sequence "R%u", 0, 31))>;
-
-// Register class representing a pair of even-odd GRs.
-def GRPair : RegisterTuples<[sub_hi, sub_lo],
-                            [(add (sequence "R%u", 0, 30, 2)),
-                             (add (sequence "R%u", 1, 31, 2))]>;
-
-defm GPR64 : M88kRegisterClass<[i64, f64, v8i8, v4i16, v2i32], 64, 32,
-                               (add GRPair), 1, 2>;
-
-//defm GPR64 : M88kRegisterClass<[i64, f64], 64, 32,
-//                               (add R0_R1, R2_R3, R4_R5, R6_R7, R8_R9,
-//                                    R10_R11, R12_R13, R14_R15, R16_R17, R18_R19,
-//                                    R20_R21, R22_R23, R24_R25, R26_R27, R28_R29,
-//                                    R30_R31)>;
-
-// Extended (floating point) registers.
-foreach I = 0-31 in {
-  let isConstant = !eq(I, 0) in
-    def X#I : M88kReg<I, "x"#I>;
-}
-
-defm XR : M88kRegisterClass<[f32, f64, f80], 128, 32,
-                            (add (sequence "X%u", 0, 31))>;
-
-// Control registers.
-foreach I = 0-63 in {
-  def CR#I : M88kCRReg<I, "cr"#I>;
-}
-
-// Carry bit. This is really bit 28 of the processor status register aka cr1.
-def CARRY: M88kCRReg<1, "carry"> {
-  let Aliases = [CR1];
-}
-
-foreach I = 0-63 in {
-  def FCR#I : M88kCRReg<I, "fcr"#I>;
-}
-
-defm CR : M88kRegisterClass<[i32], 32, 32, (add (sequence "CR%u", 0, 63)), 0>;
-defm FCR : M88kRegisterClass<[i32], 32, 32, (add (sequence "FCR%u", 0, 63)), 0>;
-
-/*
-Ideas:
-
-  bits<1> HWRegFile = regFile; // HW register file: 0 = GPR, 1 = XPR
-
-ValueType -> Register
-class getVregSrcForVT<ValueType VT> {
-  RegisterClass ret = !if(!eq(VT.Size, 128), VReg_128,
-                        !if(!eq(VT.Size, 96), VReg_96,
-                          !if(!eq(VT.Size, 64), VReg_64,
-                            !if(!eq(VT.Size, 48), VReg_64,
-                              VGPR_32))));
-}
-
-class isFloatType<ValueType SrcVT> {
-  bit ret = !or(!eq(SrcVT.Value, f16.Value),
-                !eq(SrcVT.Value, f32.Value),
-                !eq(SrcVT.Value, f64.Value),
-                !eq(SrcVT.Value, v2f16.Value),
-                !eq(SrcVT.Value, v4f16.Value),
-                !eq(SrcVT.Value, v2f32.Value),
-                !eq(SrcVT.Value, v2f64.Value),
-                !eq(SrcVT.Value, v4f64.Value));
-}
-
-*/
+def GPROpnd : RegisterOperand<GPR>;

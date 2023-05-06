@@ -88,6 +88,7 @@ void LiveRangeCalc::updateFromLiveIns() {
 
 void LiveRangeCalc::extend(LiveRange &LR, SlotIndex Use, unsigned PhysReg,
                            ArrayRef<SlotIndex> Undefs) {
+  // dbgs() << "FoundErrors7" << '\n';
   assert(Use.isValid() && "Invalid SlotIndex");
   assert(Indexes && "Missing SlotIndexes");
   assert(DomTree && "Missing dominator tree");
@@ -97,7 +98,9 @@ void LiveRangeCalc::extend(LiveRange &LR, SlotIndex Use, unsigned PhysReg,
 
   // Is there a def in the same MBB we can extend?
   auto EP = LR.extendInBlock(Undefs, Indexes->getMBBStartIdx(UseMBB), Use);
-  if (EP.first != nullptr || EP.second)
+  if (EP.first != nullptr ||
+      EP.second) // Removing this condition resolved "Bad machine code: Using an
+                 // undefined physical register" error, but produced output was wayy wrong !!!
     return;
 
   // Find the single reaching def, or determine if Use is jointly dominated by
@@ -208,8 +211,9 @@ bool LiveRangeCalc::findReachingDefs(LiveRange &LR, MachineBasicBlock &UseMBB,
   // Using Seen as a visited set, perform a BFS for all reaching defs.
   for (unsigned i = 0; i != WorkList.size(); ++i) {
     MachineBasicBlock *MBB = MF->getBlockNumbered(WorkList[i]);
-
+    // dbgs() << "FoundErrors8" << '\n';
 #ifndef NDEBUG
+    // dbgs() << "FoundErrors9" << '\n';
     if (MBB->pred_empty()) {
       MBB->getParent()->verify();
       errs() << "Use of " << printReg(PhysReg, MRI->getTargetRegisterInfo())

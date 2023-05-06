@@ -276,7 +276,7 @@ void LiveIntervals::computeRegMasks() {
 void LiveIntervals::computeRegUnitRange(LiveRange &LR, unsigned Unit) {
   assert(LICalc && "LICalc not initialized.");
   LICalc->reset(MF, getSlotIndexes(), DomTree, &getVNInfoAllocator());
-
+  // dbgs() << "FoundErrors4" << '\n';
   // The physregs aliasing Unit are the roots and their super-registers.
   // Create all values as dead defs before extending to uses. Note that roots
   // may share super-registers. That's OK because createDeadDefs() is

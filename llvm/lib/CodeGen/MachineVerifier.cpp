@@ -2063,7 +2063,7 @@ void MachineVerifier::checkLivenessAtDef(const MachineOperand *MO,
 void MachineVerifier::checkLiveness(const MachineOperand *MO, unsigned MONum) {
   const MachineInstr *MI = MO->getParent();
   const Register Reg = MO->getReg();
-
+  dbgs() << "Hello: " << Reg.id() << '\n';
   // Both use and def operands can read a register.
   if (MO->readsReg()) {
     if (MO->isKill())
@@ -2122,16 +2122,17 @@ void MachineVerifier::checkLiveness(const MachineOperand *MO, unsigned MONum) {
         }
       }
     }
-
+    // dbgs() << "Hello: " << Reg.id() << '\n';
     // Use of a dead register.
     if (!regsLive.count(Reg)) {
       if (Register::isPhysicalRegister(Reg)) {
         // Reserved registers may be used even when 'dead'.
         bool Bad = !isReserved(Reg);
+        // dbgs() << "Hello: " << Reg.id() << '\n';
         // We are fine if just any subregister has a defined value.
         if (Bad) {
-
           for (const MCPhysReg &SubReg : TRI->subregs(Reg)) {
+            // dbgs() << "Hello: " << SubReg << '\n';
             if (regsLive.count(SubReg)) {
               Bad = false;
               break;

@@ -65,6 +65,14 @@ public:
   unsigned getPC10Encoding(const MCInst &MI, unsigned OpNo,
                            SmallVectorImpl<MCFixup> &Fixups,
                            const MCSubtargetInfo &STI) const;
+          
+  unsigned getMemSrcValue(const MCInst &MI, unsigned OpIdx,
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const;
+
+  unsigned getImmOpValue(const MCInst &MI, unsigned OpIdx,
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const;                                        
 };
 
 } // end anonymous namespace
@@ -112,9 +120,19 @@ unsigned SAYACMCCodeEmitter::getMemSrcValue(const MCInst &MI, unsigned OpIdx,
                                           const MCSubtargetInfo &STI) const {
   unsigned Bits = 0;
   const MCOperand &RegMO = MI.getOperand(OpIdx);
-  // const MCOperand &ImmMO = MI.getOperand(OpIdx + 1);
-  // assert(ImmMO.getImm() >= 0);
+  const MCOperand &ImmMO = MI.getOperand(OpIdx + 1);
+  assert(ImmMO.getImm() >= 0);
   Bits |= (getMachineOpValue(MI, RegMO, Fixups, STI));
-  // Bits |= (unsigned)ImmMO.getImm() & 0xfff;
+  Bits |= (unsigned)ImmMO.getImm() & 0xfff;
   return Bits;
+}
+
+unsigned SAYACMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpIdx,
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpIdx);
+
+  assert(MO.isImm() && "getImmOpValue expects only immediates");
+
+  return MO.getImm();
 }

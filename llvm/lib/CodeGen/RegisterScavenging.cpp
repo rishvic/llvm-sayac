@@ -685,7 +685,6 @@ static bool scavengeFrameVirtualRegsInBlock(MachineRegisterInfo &MRI,
           continue;
         if (!MO.readsReg())
           continue;
-
         Register SReg = scavengeVReg(MRI, RS, Reg, true);
         N->addRegisterKilled(SReg, &TRI, false);
         RS.setRegUsed(SReg);
@@ -775,7 +774,7 @@ public:
   bool runOnMachineFunction(MachineFunction &MF) override {
     const TargetSubtargetInfo &STI = MF.getSubtarget();
     const TargetFrameLowering &TFL = *STI.getFrameLowering();
-
+    dbgs() << "*****Running Register Scavenger Pass ****\n";
     RegScavenger RS;
     // Let's hope that calling those outside of PrologEpilogueInserter works
     // well enough to initialize the scavenger with some emergency spillslots

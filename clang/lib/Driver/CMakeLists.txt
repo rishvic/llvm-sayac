@@ -72,6 +72,7 @@ add_clang_library(clangDriver
   ToolChains/WebAssembly.cpp
   ToolChains/XCore.cpp
   ToolChains/SAYAC.cpp
+  ToolChains/Arch/M88k.cpp
   ToolChains/PPCLinux.cpp
   ToolChains/InterfaceStubs.cpp
   ToolChains/ZOS.cpp

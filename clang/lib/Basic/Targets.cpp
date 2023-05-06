@@ -587,6 +587,15 @@ TargetInfo *AllocateTarget(const llvm::Triple &Triple,
 
   case llvm::Triple::sayac:
     return new SAYACTargetInfo(Triple, Opts);
+  
+  case llvm::Triple::m88k:
+    switch (os) {
+    case llvm::Triple::OpenBSD:
+      return new OpenBSDTargetInfo<M88kTargetInfo>(Triple, Opts);
+    default:
+      return new M88kTargetInfo(Triple, Opts);
+    }
+
 
   case llvm::Triple::spir: {
     if (Triple.getOS() != llvm::Triple::UnknownOS ||

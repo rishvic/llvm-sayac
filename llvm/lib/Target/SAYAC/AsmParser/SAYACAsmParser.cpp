@@ -112,6 +112,17 @@ public:
     return Kind == OpKind_Imm && inRange(Imm, MinValue, MaxValue);
   }
 
+  bool isImmShift() {
+    if (!isImm())
+      return false;
+
+    const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm);
+    if (!ConstExpr)
+      return false;
+    int64_t Value = ConstExpr->getValue();
+    return (Value >= -15) && (Value <= 15);
+  }
+
   const MCExpr *getImm() const {
     assert(isImm() && "Invalid type access!");
     return Imm;
@@ -159,6 +170,11 @@ public:
     addExpr(Inst, getImm());
   }
 
+  void addImmShiftOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+    addExpr(Inst, getImm());
+  }
+
   bool isU5Imm() const { return isImm(0, 31); }
   // TODO
   bool isU5ImmO() const { return isImm(0, 31); }
@@ -166,6 +182,10 @@ public:
   bool isU8Imm() const { return isImm(0, 255); }
   bool isU16Imm() const { return isImm(0, 65535); }
   bool isS16Imm() const { return isImm(-32768, 32767); }
+
+  bool isUImmXLenm() const {
+    return isImm();
+  }
 
   void print(raw_ostream &OS) const override {
     switch (Kind) {
@@ -202,6 +222,9 @@ class SAYACAsmParser : public MCTargetAsmParser {
                                         SMLoc &EndLoc) override;
 
   bool parseOperand(OperandVector &Operands, StringRef Mnemonic);
+
+  bool generateImmOutOfRangeError(OperandVector &Operands, uint64_t ErrorInfo,
+                                  int64_t Lower, int64_t Upper, Twine Msg);
 
   OperandMatchResultTy parseImmWO(OperandVector &Operands);
   OperandMatchResultTy parsePCRel16(OperandVector &Operands) {
@@ -248,7 +271,7 @@ bool SAYACAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name
                                      SMLoc NameLoc, OperandVector &Operands) {
   // First operand in MCInst is instruction mnemonic.
   Operands.push_back(SAYACOperand::createToken(Name, NameLoc));
-
+  
   // Read the remaining operands.
   if (getLexer().isNot(AsmToken::EndOfStatement)) {
     // Read the first operand.
@@ -309,6 +332,13 @@ bool SAYACAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
 llvm::dbgs() << "parseOperand failed (" << Mnemonic << ")\n";
   // Failure
   return true;
+}
+
+bool SAYACAsmParser::generateImmOutOfRangeError(
+    OperandVector &Operands, uint64_t ErrorInfo, int64_t Lower, int64_t Upper,
+    Twine Msg = "immediate must be an integer in the range") {
+  SMLoc ErrorLoc = ((SAYACOperand &)*Operands[ErrorInfo]).getStartLoc();
+  return Error(ErrorLoc, Msg + " [" + Twine(Lower) + ", " + Twine(Upper) + "]");
 }
 
 OperandMatchResultTy SAYACAsmParser::parseImmWO(OperandVector &Operands) {
@@ -428,6 +458,11 @@ bool SAYACAsmParser::MatchAndEmitInstruction(SMLoc IdLoc, unsigned &Opcode,
     return Error(IdLoc, "invalid instruction" + Suggestion/*,
                  Op.getLocRange()*/);
   }
+  // case Match_InvalidUImmXLenm:
+  //   return generateImmOutOfRangeError(Operands, ErrorInfo, 0, (1 << 8) - 1,
+  //                                     "operand must be a symbol with "
+  //                                     "%hi/%tprel_hi modifier or an integer in "
+  //                                     "the range");
   }
   llvm_unreachable("Unexpected match type");
 }

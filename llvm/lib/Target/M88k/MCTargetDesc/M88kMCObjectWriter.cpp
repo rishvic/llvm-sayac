@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "MCTargetDesc/M88kMCFixups.h"
+//#include "MCTargetDesc/M88kMCFixups.h"
 #include "MCTargetDesc/M88kMCTargetDesc.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/MC/MCELFObjectWriter.h"
@@ -42,33 +42,7 @@ M88kObjectWriter::M88kObjectWriter(uint8_t OSABI)
 unsigned M88kObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Target,
                                         const MCFixup &Fixup,
                                         bool IsPCRel) const {
-  unsigned Type;
-  unsigned Kind = static_cast<unsigned>(Fixup.getKind());
-  switch (Kind) {
-  case M88k::FK_88K_HI:
-    Type = ELF::R_88K_16H;
-    break;
-  case M88k::FK_88K_LO:
-    Type = ELF::R_88K_16L;
-    break;
-  case M88k::FK_88K_DISP16:
-    Type = ELF::R_88K_DISP16;
-    break;
-  case M88k::FK_88K_DISP26:
-    Type = ELF::R_88K_DISP26;
-    break;
-  case M88k::FK_88K_NONE:
-    Type = ELF::R_88K_NONE;
-    break;
-
-  case FK_Data_4:
-    Type = ELF::R_88K_32;
-    break;
-
-  default:
-    llvm_unreachable("Invalid fixup kind!");
-  }
-  return Type;
+  return 0;
 }
 
 std::unique_ptr<MCObjectTargetWriter>

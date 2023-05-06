@@ -63,85 +63,41 @@ void M88kInstPrinter::printU5ImmOperand(const MCInst *MI, int OpNum,
   O << Value;
 }
 
-void M88kInstPrinter::printU16ImmOperand(const MCInst *MI, int OpNum,
+void M88kInstPrinter::printU5ImmOOperand(const MCInst *MI, int OpNum,
                                          const MCSubtargetInfo &STI,
                                          raw_ostream &O) {
-  const MCOperand &MO = MI->getOperand(OpNum);
-  if (MO.isImm()) {
-    O << MO.getImm();
-  } else {
-    assert(MO.isExpr() && "Expected expression");
-    MO.getExpr()->print(O, &MAI);
-  }
-}
-
-void M88kInstPrinter::printVec9Operand(const MCInst *MI, int OpNum,
-                                       const MCSubtargetInfo &STI,
-                                       raw_ostream &O) {
-  const MCOperand &MO = MI->getOperand(OpNum);
-  if (MO.isImm()) {
-    O << MO.getImm();
-  } else {
-    assert(MO.isExpr() && "Expected expression");
-    MO.getExpr()->print(O, &MAI);
-  }
-}
-
-void M88kInstPrinter::printBFWidthOperand(const MCInst *MI, int OpNum,
-                                          const MCSubtargetInfo &STI,
-                                          raw_ostream &O) {
   int64_t Value = MI->getOperand(OpNum).getImm();
-  assert(isUInt<5>(Value) && "Invalid bitfield width argument");
-  O << Value;
-}
-
-void M88kInstPrinter::printBFOffsetOperand(const MCInst *MI, int OpNum,
-                                           const MCSubtargetInfo &STI,
-                                           raw_ostream &O) {
-  int64_t Value = MI->getOperand(OpNum).getImm();
-  assert(isUInt<5>(Value) && "Invalid bitfield offset argument");
-  O << Value;
-}
-
-void M88kInstPrinter::printPixelRotOperand(const MCInst *MI, int OpNum,
-                                           const MCSubtargetInfo &STI,
-                                           raw_ostream &O) {
-  int64_t Value = MI->getOperand(OpNum).getImm();
-  assert((isUInt<6>(Value) || !(Value & 0x3)) &&
-         "Invalid pixel rotation size argument");
+  // assert(isUInt<N>(Value) && "Invalid uimm argument");
   O << "<" << Value << ">";
 }
 
-void M88kInstPrinter::printCCodeOperand(const MCInst *MI, int OpNum,
-                                        const MCSubtargetInfo &STI,
-                                        raw_ostream &O) {
-  const MCOperand &MO = MI->getOperand(OpNum);
-  assert(MO.isImm() && "Invalid condition code argument");
-  int64_t CC = MO.getImm();
-  switch (CC) {
-#define CASE(cc, str)                                                          \
-  case cc:                                                                     \
-    O << str;                                                                  \
-    break;
-    CASE(0x2, "eq0")
-    CASE(0xd, "ne0")
-    CASE(0x1, "gt0")
-    CASE(0xc, "lt0")
-    CASE(0x3, "ge0")
-    CASE(0xe, "le0")
-#undef CASE
-  default:
-    O << CC;
-  }
+void M88kInstPrinter::printU10ImmWOOperand(const MCInst *MI, int OpNum,
+                                           const MCSubtargetInfo &STI,
+                                           raw_ostream &O) {
+  int64_t Value = MI->getOperand(OpNum).getImm();
+  // assert(isUInt<N>(Value) && "Invalid uimm argument");
+  int64_t Width = (Value >> 5) & 0x1f;
+  int64_t Offset = Value & 0x1f;
+  O << Width << "<" << Offset << ">";
+}
+
+void M88kInstPrinter::printU16ImmOperand(const MCInst *MI, int OpNum,
+                                         const MCSubtargetInfo &STI,
+                                         raw_ostream &O) {
+  int64_t Value = MI->getOperand(OpNum).getImm();
+  // assert(isUInt<N>(Value) && "Invalid uimm argument");
+  O << Value;
 }
 
 void M88kInstPrinter::printPCRelOperand(const MCInst *MI, uint64_t Address,
                                         int OpNum, const MCSubtargetInfo &STI,
                                         raw_ostream &O) {
+  // TODO
   const MCOperand &MO = MI->getOperand(OpNum);
-  if (MO.isImm())
-    O << MO.getImm();
-  else
+  if (MO.isImm()) {
+    O << "0x";
+    O.write_hex(MO.getImm());
+  } else
     MO.getExpr()->print(O, &MAI);
 }
 

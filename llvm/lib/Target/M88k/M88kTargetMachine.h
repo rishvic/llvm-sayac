@@ -26,9 +26,8 @@ class M88kTargetMachine : public LLVMTargetMachine {
 public:
   M88kTargetMachine(const Target &T, const Triple &TT, StringRef CPU,
                     StringRef FS, const TargetOptions &Options,
-                    std::optional<Reloc::Model> RM,
-                    std::optional<CodeModel::Model> CM, CodeGenOpt::Level OL,
-                    bool JIT);
+                    Optional<Reloc::Model> RM, Optional<CodeModel::Model> CM,
+                    CodeGenOpt::Level OL, bool JIT);
   ~M88kTargetMachine() override;
   const M88kSubtarget *getSubtargetImpl(const Function &) const override;
 
@@ -43,12 +42,6 @@ public:
   TargetLoweringObjectFile *getObjFileLowering() const override {
     return TLOF.get();
   }
-
-  // Returns true if signed division instruction should be used on MC88100.
-  bool useDivInstr() const;
-
-  // Returns true if check for zero division should be omitted on MC88100.
-  bool noZeroDivCheck() const;
 };
 
 } // end namespace llvm

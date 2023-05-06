@@ -14,6 +14,7 @@
 #include "Arch/SystemZ.h"
 #include "Arch/VE.h"
 #include "Arch/X86.h"
+#include "Arch/M88k.h"
 #include "HIP.h"
 #include "Hexagon.h"
 #include "InputInfo.h"
@@ -430,6 +431,9 @@ std::string tools::getCPUName(const ArgList &Args, const llvm::Triple &T,
   case llvm::Triple::x86:
   case llvm::Triple::x86_64:
     return x86::getX86TargetCPU(Args, T);
+  
+  case llvm::Triple::m88k:
+    return m88k::getM88kTargetCPU(Args);
 
   case llvm::Triple::hexagon:
     return "hexagon" +

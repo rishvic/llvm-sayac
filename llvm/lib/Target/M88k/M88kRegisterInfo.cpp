@@ -39,58 +39,16 @@ M88kRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
 BitVector M88kRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
 
-  // R0 is always reserved.
-  Reserved.set(M88k::R0);
-
-  // R28 and R29 are always reserved according to SYS-V ABI.
-  Reserved.set(M88k::R28);
-  Reserved.set(M88k::R29);
-
   // R31 is the stack pointer.
   Reserved.set(M88k::R31);
-
-  // If the function uses the frame pointer, then R30 is reserved.
-  if (getFrameLowering(MF)->hasFP(MF))
-    Reserved.set(M88k::R30);
 
   return Reserved;
 }
 
-const uint32_t *
-M88kRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
-                                       CallingConv::ID CC) const {
-  return CSR_M88k_RegMask;
-}
-
-bool M88kRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
+void M88kRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
                                            int SPAdj, unsigned FIOperandNum,
-                                           RegScavenger *RS) const {
-  assert(SPAdj == 0 && "Unexpected stack adjustment");
-
-  MachineInstr &MI = *II;
-  MachineFunction &MF = *MI.getParent()->getParent();
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
-
-  Register FrameReg;
-  int64_t Offset = getFrameLowering(MF)->resolveFrameIndexReference(
-      MF, FrameIndex, FrameReg);
-
-  Offset += MI.getOperand(FIOperandNum + 1).getImm();
-
-  assert(isInt<16>(Offset) && "m88k: Larger offsets not yet supported.");
-  MI.getOperand(FIOperandNum).ChangeToRegister(FrameReg, /*isDef=*/false);
-  MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
-  return false;
-}
+                                           RegScavenger *RS) const {}
 
 Register M88kRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
-  if (getFrameLowering(MF)->hasFP(MF))
-    return M88k::R30;
-  return M88k::R31;
-}
-
-const TargetRegisterClass *
-M88kRegisterInfo::getPointerRegClass(const MachineFunction &MF,
-                                     unsigned Kind) const {
-  return &M88k::GPRRCRegClass;
+  return M88k::R30;
 }

@@ -630,12 +630,14 @@ void AsmWriterEmitter::EmitGetRegisterName(raw_ostream &O) {
   if (hasAltNames) {
     O << "  switch(AltIdx) {\n"
       << "  default: llvm_unreachable(\"Invalid register alt name index!\");\n";
+    int num_id = 0;
     for (const Record *R : AltNameIndices) {
       StringRef AltName = R->getName();
       O << "  case ";
-      if (!Namespace.empty())
-        O << Namespace << "::";
-      O << AltName << ":\n";
+      O << num_id++ << ":\n";
+      // if (!Namespace.empty())
+      //   O << Namespace << "::";
+      // O << AltName << ":\n";
       if (R->isValueUnset("FallbackRegAltNameIndex"))
         O << "    assert(*(AsmStrs" << AltName << "+RegAsmOffset" << AltName
           << "[RegNo-1]) &&\n"

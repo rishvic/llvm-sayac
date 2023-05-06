@@ -392,6 +392,7 @@ class VirtRegMap;
     /// it doesn't exist.
     LiveRange &getRegUnit(unsigned Unit) {
       LiveRange *LR = RegUnitRanges[Unit];
+      // dbgs() << "FoundErrors3" << '\n';
       if (!LR) {
         // Compute missing ranges on demand.
         // Use segment set to speed-up initial computation of the live range.

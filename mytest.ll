@@ -1,0 +1,26 @@
+; ModuleID = 'mytest.bc'
+source_filename = "mytest.c"
+target datalayout = "e-m:e-p:16:16-i32:16-a:0:16-n16-S16"
+target triple = "sayac"
+
+; Function Attrs: noinline nounwind optnone
+define dso_local i16 @main() #0 {
+entry:
+  %retval = alloca i16, align 2
+  %a = alloca i16, align 2
+  %b = alloca i16, align 2
+  %c = alloca i16, align 2
+  store i16 0, i16* %retval, align 2
+  store i16 17, i16* %a, align 2
+  store i16 18, i16* %b, align 2
+  store i16 19, i16* %c, align 2
+  ret i16 0
+}
+
+attributes #0 = { noinline nounwind optnone "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
+
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
+
+!0 = !{i32 1, !"wchar_size", i32 2}
+!1 = !{!"clang version 12.0.1 (https://github.com/llvm/llvm-project/ 8724eb480dea541e9bddc86757e240b70852fb65)"}

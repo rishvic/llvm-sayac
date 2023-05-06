@@ -144,6 +144,7 @@ void LiveIntervalCalc::createDeadDefs(LiveRange &LR, Register Reg) {
 
 void LiveIntervalCalc::extendToUses(LiveRange &LR, Register Reg,
                                     LaneBitmask Mask, LiveInterval *LI) {
+  // dbgs() << "FoundErrors6" << '\n';
   const MachineRegisterInfo *MRI = getRegInfo();
   SlotIndexes *Indexes = getIndexes();
   SmallVector<SlotIndex, 4> Undefs;

@@ -34,9 +34,19 @@ struct SAYACRegisterInfo : public SAYACGenRegisterInfo {
 
   Register getFrameRegister(const MachineFunction &MF) const override;
 
-#if 0
+  bool requiresRegisterScavenging(const MachineFunction &MF) const override {
+    return true;
+  }
+
+  bool requiresFrameIndexScavenging(const MachineFunction &MF) const override {
+    return true;
+  }
+
+  bool isConstantPhysReg(MCRegister PhysReg) const override;
+
   const uint32_t *getCallPreservedMask(const MachineFunction &MF,
                                        CallingConv::ID CC) const override;
+#if 0
 
   const uint32_t* getRTCallPreservedMask(CallingConv::ID CC) const;
 

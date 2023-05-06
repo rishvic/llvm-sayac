@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines the interfaces for the M88kTargetLowering class.
-// Only functions required by GlobalISel are implemented.
+// This file defines the interfaces that M88k uses to lower LLVM code into a
+// selection DAG.
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,6 +15,9 @@
 #define LLVM_LIB_TARGET_M88K_M88KISELLOWERING_H
 
 #include "M88k.h"
+#include "M88kInstrInfo.h"
+#include "llvm/CodeGen/MachineBasicBlock.h"
+#include "llvm/CodeGen/SelectionDAG.h"
 #include "llvm/CodeGen/TargetLowering.h"
 
 namespace llvm {
@@ -34,11 +37,15 @@ enum NodeType : unsigned {
   // There is an optional glue operand at the end.
   CALL,
 
-  // Get the High 16 bits from a 32-bit immediate.
-  Hi16,
-
-  // Get the Lower 16 bits from a 32-bit immediate.
-  Lo16,
+  // Bit-field instructions.
+  CLR,
+  SET,
+  EXT,
+  EXTU,
+  MAK,
+  ROT,
+  FF1,
+  FF0,
 };
 } // end namespace M88kISD
 
@@ -49,15 +56,28 @@ public:
   explicit M88kTargetLowering(const TargetMachine &TM,
                               const M88kSubtarget &STI);
 
-  bool isSelectSupported(SelectSupportKind /*kind*/) const override;
-  bool isIndexingLegal(MachineInstr &MI, Register Base, Register Offset,
-                       bool IsPre, MachineRegisterInfo &MRI) const override;
-  bool isCheapToSpeculateCtlz(Type *Ty) const override;
-  bool isCtlzFast() const override;
-  Register getRegisterByName(const char *RegName, LLT Ty,
-                             const MachineFunction &MF) const override;
-  bool isConstantUnsignedBitfieldExtractLegal(unsigned Opc, LLT Ty1,
-                                              LLT Ty2) const override;
+  // Override TargetLowering methods.
+  bool hasAndNot(SDValue X) const override { return true; }
+  const char *getTargetNodeName(unsigned Opcode) const override;
+
+  SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
+
+  SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
+
+  // Override required hooks.
+  SDValue LowerFormalArguments(SDValue Chain, CallingConv::ID CallConv,
+                               bool IsVarArg,
+                               const SmallVectorImpl<ISD::InputArg> &Ins,
+                               const SDLoc &DL, SelectionDAG &DAG,
+                               SmallVectorImpl<SDValue> &InVals) const override;
+
+  SDValue LowerReturn(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg,
+                      const SmallVectorImpl<ISD::OutputArg> &Outs,
+                      const SmallVectorImpl<SDValue> &OutVals, const SDLoc &DL,
+                      SelectionDAG &DAG) const override;
+
+  SDValue LowerCall(CallLoweringInfo &CLI,
+                    SmallVectorImpl<SDValue> &InVals) const override;
 };
 
 } // end namespace llvm
