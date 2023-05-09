@@ -42,6 +42,9 @@ BitVector SAYACRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   // R2 is the stack pointer.
   markSuperRegs(Reserved, SAYAC::R2);
 
+  // R3 is the frame pointer.
+  markSuperRegs(Reserved, SAYAC::R3);
+
   // R0 is wired to zero
   markSuperRegs(Reserved, SAYAC::R0);
 
