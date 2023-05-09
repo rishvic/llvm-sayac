@@ -125,12 +125,12 @@ void SAYACInstrInfo::expandBranch(MachineInstr &MI, unsigned BranchInstr,
       //     .addReg(destReg);
       BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(-1);
       BuildMI(MBB, MI, DL, get(SAYAC::MHI), destReg).addImm(251);
-      BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
-      // BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), destReg).addReg(destReg);
+      BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
+      // BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), destReg).addReg(destReg);
       BuildMI(MBB, MI, DL, get(SAYAC::ANDrr), SAYAC::R15)
           .addReg(SAYAC::R15)
           .addReg(destReg);
-      BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
+      BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
     }
 
     // Note the usage of src1 here means the value stored at src1 is erased
@@ -191,12 +191,12 @@ bool SAYACInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     const unsigned src1 = MI.getOperand(2).getReg();
     const unsigned src2 = MI.getOperand(3).getReg();
 
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), src1).addReg(src1); // src1 = destReg2 , hence we can modify
-    BuildMI(MBB, MI, DL, get(SAYAC::NTR2c), destReg).addReg(src2);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), src1).addReg(src1); // src1 = destReg2 , hence we can modify
+    BuildMI(MBB, MI, DL, get(SAYAC::NTR1c), destReg).addReg(src2);
     BuildMI(MBB, MI, DL, get(SAYAC::ANDrr), destReg)
         .addReg(src1)
         .addReg(destReg);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), destReg).addReg(destReg);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), destReg).addReg(destReg);
 
     MBB.erase(MI);
 
@@ -339,12 +339,12 @@ bool SAYACInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     //     .addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(-1);
     BuildMI(MBB, MI, DL, get(SAYAC::MHI), destReg).addImm(251);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
-    // BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), destReg).addReg(destReg);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
+    // BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), destReg).addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::ANDrr), SAYAC::R15)
           .addReg(SAYAC::R15)
           .addReg(destReg);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
 
     BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(32);
     BuildMI(MBB, MI, DL, get(SAYAC::ANDrr), destReg)
@@ -382,12 +382,12 @@ bool SAYACInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     //     .addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(-1);
     BuildMI(MBB, MI, DL, get(SAYAC::MHI), destReg).addImm(251);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
-    // BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), destReg).addReg(destReg);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
+    // BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), destReg).addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::ANDrr), SAYAC::R15)
           .addReg(SAYAC::R15)
           .addReg(destReg);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
 
 
     BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(48);
@@ -433,12 +433,12 @@ bool SAYACInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     //     .addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(-1);
     BuildMI(MBB, MI, DL, get(SAYAC::MHI), destReg).addImm(251);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
-    // BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), destReg).addReg(destReg);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
+    // BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), destReg).addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::ANDrr), SAYAC::R15)
           .addReg(SAYAC::R15)
           .addReg(destReg);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
 
     
 
@@ -485,12 +485,12 @@ bool SAYACInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     //     .addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(-1);
     BuildMI(MBB, MI, DL, get(SAYAC::MHI), destReg).addImm(251);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
-    // BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), destReg).addReg(destReg);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
+    // BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), destReg).addReg(destReg);
     BuildMI(MBB, MI, DL, get(SAYAC::ANDrr), SAYAC::R15)
           .addReg(SAYAC::R15)
           .addReg(destReg);
-    BuildMI(MBB, MI, DL, get(SAYAC::NTD2c), SAYAC::R15).addReg(SAYAC::R15);
+    BuildMI(MBB, MI, DL, get(SAYAC::NTD1c), SAYAC::R15).addReg(SAYAC::R15);
 
 
     BuildMI(MBB, MI, DL, get(SAYAC::MSI), destReg).addImm(32);

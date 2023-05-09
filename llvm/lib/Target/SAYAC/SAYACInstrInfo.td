@@ -620,22 +620,22 @@ def : BccPat<setle,   CBle>;
 
 
 // Logical NOT
-def NTR2c : F_NTR<0b1, 
+def NTR1c : F_NTR<0b0, 
                  (outs GPR:$rd), (ins GPR: $rs),
-                 "ntr2 $rd $rs",
+                 "ntr1 $rd $rs",
                  [(set GPR:$rd, (not GPR:$rs))]
                  > ;
 
-def NTD2c : F_NTD<0b1, 
+def NTD1c : F_NTD<0b0, 
                  (outs GPR:$rd), (ins GPR: $rs),
-                 "ntd2 $rs",
+                 "ntd1 $rs",
                  [(set GPR:$rd, (not GPR:$rs))]
                  > 
                  {
                   let Constraints = "$rd = $rs";
                  }
 
-//TODO: NTR1c and NTD1c (see SAYAC ISR)
+//TODO: NTR2c and NTD2c (see SAYAC ISR)
 
 
 
