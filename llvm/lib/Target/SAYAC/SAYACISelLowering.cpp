@@ -549,5 +549,14 @@ SDValue SAYACTargetLowering::LowerGlobalAddress(SDValue Op, SelectionDAG& DAG) c
   GlobalAddressSDNode *GlobalAddr = cast<GlobalAddressSDNode>(Op.getNode());
   SDValue TargetAddr =
       DAG.getTargetGlobalAddress(GlobalAddr->getGlobal(), Op, MVT::i16);
-  return DAG.getNode(SAYACISD::LOAD_SYM, Op, VT, TargetAddr);
+  SDValue offset = DAG.getConstant(GlobalAddr->getOffset(), Op, MVT::i16);
+
+  if(!offset) return DAG.getNode(SAYACISD::LOAD_SYM, Op, VT, TargetAddr);
+  else {
+    SDValue SymReg = DAG.getNode(SAYACISD::LOAD_SYM, Op, VT, TargetAddr);
+
+    // Now, add offset to SYM Register
+    return DAG.getNode(ISD::ADD, Op, VT, SymReg, offset);
+
+  }
 }

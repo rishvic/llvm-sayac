@@ -1,24 +1,25 @@
-; ModuleID = 'test.bc'
-source_filename = "test.c"
+; ModuleID = './example_dag/o.bc'
+source_filename = "./example_dag/o.c"
 target datalayout = "e-m:e-p:16:16-i32:16-a:0:16-n16-S16"
 target triple = "sayac"
 
-@__const.main.a = private unnamed_addr constant [4 x i16] [i16 1, i16 2, i16 3, i16 4], align 2
-
 ; Function Attrs: noinline nounwind optnone
-define dso_local i16 @main() #0 {
+define dso_local i16 @sum(i16 %a, i16 %b) #0 {
 entry:
-  %a = alloca [4 x i16], align 2
-  %0 = bitcast [4 x i16]* %a to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i16(i8* align 2 %0, i8* align 2 bitcast ([4 x i16]* @__const.main.a to i8*), i16 8, i1 false)
-  ret i16 0
+  %a.addr = alloca i16, align 2
+  %b.addr = alloca i16, align 2
+  %sum = alloca i16, align 2
+  store i16 %a, i16* %a.addr, align 2
+  store i16 %b, i16* %b.addr, align 2
+  %0 = load i16, i16* %a.addr, align 2
+  %1 = load i16, i16* %b.addr, align 2
+  %add = add nsw i16 %0, %1
+  store i16 %add, i16* %sum, align 2
+  %2 = load i16, i16* %sum, align 2
+  ret i16 %2
 }
 
-; Function Attrs: argmemonly nofree nosync nounwind willreturn
-declare void @llvm.memcpy.p0i8.p0i8.i16(i8* noalias nocapture writeonly, i8* noalias nocapture readonly, i16, i1 immarg) #1
-
 attributes #0 = { noinline nounwind optnone "disable-tail-calls"="false" "frame-pointer"="all" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { argmemonly nofree nosync nounwind willreturn }
 
 !llvm.module.flags = !{!0}
 !llvm.ident = !{!1}
