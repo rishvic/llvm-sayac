@@ -297,6 +297,12 @@ def LDR: F_Load<0b00, (outs GPR:$rd), (ins GPR:$rs1),
                   []
                   >;
 
+let mayLoad = 1 in 
+def LDB: F_Load<0b10, (outs GPR:$rd), (ins GPR:$rs1),
+                  "ldb $rd $rs1",
+                  []
+                  >;
+
 
 multiclass StPat<PatFrag StoreOp, InstSAYAC Inst> {
   def : Pat<(StoreOp GPR:$rs1, GPR:$rs2), (Inst GPR:$rs2, GPR:$rs1)>;
@@ -327,7 +333,12 @@ multiclass LdPat<PatFrag LoadOp, InstSAYAC Inst> {
 
 defm : LdPat<sextloadi16, LDR>;
 defm : LdPat<extloadi16, LDR>;
+defm : LdPat<zextloadi16, LDB>;
 defm : LdPat<load, LDR>;
+
+defm : LdPat<sextloadi8, LDB>;
+defm : LdPat<extloadi8, LDB>;
+defm : LdPat<zextloadi8, LDB>;
 
 // def MoveImm16Ty : SDTypeProfile<1, 1, [
 //   SDTCisSameAs<0, 1>, SDTCisInt<0>
@@ -401,19 +412,19 @@ def : Pat<(i16 (load_sym tglobaladdr:$addr)), (MOVi16sym $addr)>;
 // Logical Shift
 def SLR  : F_LAR<0b0111,
                    (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
-                   "slr $rd, $rs1, $rs2",
+                   "slr $rd $rs1 $rs2",
                    []>;
 
 // Arithmetic Shift
 def SAR  : F_LAR<0b1000,
                    (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
-                   "sar $rd, $rs1, $rs2",
+                   "sar $rd $rs1 $rs2",
                    []>;
 
 // Logical Shift Immediate
 def SHIl : F_SHI<0b0, 
                    (outs GPR:$rd), (ins GPR:$rs, immShift:$imm),
-                   "shil $imm, $rs",
+                   "shil $imm $rs",
                    []>{
                       let Constraints = "$rd = $rs";
                     }
@@ -421,7 +432,7 @@ def SHIl : F_SHI<0b0,
 // Arithmetic Shift Immediate
 def SHIa : F_SHI<0b1, 
                    (outs GPR:$rd), (ins GPR:$rs, immShift:$imm),
-                   "shia $imm, $rs",
+                   "shia $imm $rs",
                    []>{
                       let Constraints = "$rd = $rs";
                     }

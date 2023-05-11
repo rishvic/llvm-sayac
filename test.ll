@@ -3,14 +3,17 @@ source_filename = "test.c"
 target datalayout = "e-m:e-p:16:16-i32:16-a:0:16-n16-S16"
 target triple = "sayac"
 
-@__const.main.a = private unnamed_addr constant [4 x i16] [i16 1, i16 2, i16 3, i16 4], align 2
+@__const.main.ch = private unnamed_addr constant [2 x i8] c"12", align 1
+@.str = private unnamed_addr constant [2 x i8] c"1\00", align 1
 
 ; Function Attrs: noinline nounwind optnone
 define dso_local i16 @main() #0 {
 entry:
-  %a = alloca [4 x i16], align 2
-  %0 = bitcast [4 x i16]* %a to i8*
-  call void @llvm.memcpy.p0i8.p0i8.i16(i8* align 2 %0, i8* align 2 bitcast ([4 x i16]* @__const.main.a to i8*), i16 8, i1 false)
+  %ch = alloca [2 x i8], align 1
+  %c = alloca i8*, align 2
+  %0 = bitcast [2 x i8]* %ch to i8*
+  call void @llvm.memcpy.p0i8.p0i8.i16(i8* align 1 %0, i8* align 1 getelementptr inbounds ([2 x i8], [2 x i8]* @__const.main.ch, i32 0, i32 0), i16 2, i1 false)
+  store i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str, i16 0, i16 0), i8** %c, align 2
   ret i16 0
 }
 
@@ -24,4 +27,4 @@ attributes #1 = { argmemonly nofree nosync nounwind willreturn }
 !llvm.ident = !{!1}
 
 !0 = !{i32 1, !"wchar_size", i32 2}
-!1 = !{!"clang version 12.0.1 (https://github.com/ak821/SAYAC-Compiler.git 76547d3e98c59a447f55dea8242812e7e96fef9e)"}
+!1 = !{!"clang version 12.0.1 (https://github.com/ak821/SAYAC-Compiler.git ff29de01d31f9e9ef73e64686958f20eb4f574eb)"}

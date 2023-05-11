@@ -774,10 +774,8 @@ void RISCVDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
   }
-  Node->dump();
   // Select the default instruction.
   SelectCode(Node);
-    Node->dump();
 }
 
 bool RISCVDAGToDAGISel::SelectInlineAsmMemoryOperand(
