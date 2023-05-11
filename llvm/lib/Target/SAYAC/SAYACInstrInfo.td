@@ -290,6 +290,12 @@ def STR : F_Store<0b00, (outs), (ins GPR: $rd, GPR: $rs1),
                     "str $rd $rs1",
                     []
                     >;
+                  
+let mayStore = 1 in 
+def STB : F_Store<0b10, (outs), (ins GPR: $rd, GPR: $rs1),
+                    "stb $rd $rs1",
+                    []
+                    >;
 
 let mayLoad = 1 in 
 def LDR: F_Load<0b00, (outs GPR:$rd), (ins GPR:$rs1),
@@ -316,9 +322,9 @@ multiclass StPat<PatFrag StoreOp, InstSAYAC Inst> {
 }
 
 defm : StPat<truncstorei16, STR>;
-defm : StPat<truncstorei8, STR>;
 defm : StPat<store, STR>;
 
+defm : StPat<truncstorei8, STB>;
 
 multiclass LdPat<PatFrag LoadOp, InstSAYAC Inst> {
   def : Pat<(LoadOp GPR:$rs1), (Inst GPR:$rs1)>;  
@@ -333,7 +339,7 @@ multiclass LdPat<PatFrag LoadOp, InstSAYAC Inst> {
 
 defm : LdPat<sextloadi16, LDR>;
 defm : LdPat<extloadi16, LDR>;
-defm : LdPat<zextloadi16, LDB>;
+defm : LdPat<zextloadi16, LDR>;
 defm : LdPat<load, LDR>;
 
 defm : LdPat<sextloadi8, LDB>;

@@ -89,7 +89,9 @@ void SAYACRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     // Not yet supported
     return;
   case SAYAC::LDR:
+  case SAYAC::LDB:
   case SAYAC::STR:
+  case SAYAC::STB:
     break;
   case SAYAC::FI:
   {
