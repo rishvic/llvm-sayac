@@ -1,9 +1,9 @@
 # SAYAC Compiler using LLVM
 
-This repository contains the source code for SAYAC Compiler developed using LLVM 12. 
+This repository contains the source code for SAYAC Compiler developed using LLVM 12. The SAYAC processor is a Simple Architecture Yet Ample Circuitry. This is a RISCV-like processor developed at University of Tehran.
 
-The SAYAC processor is a Simple Architecture Yet Ample Circuitry. This is a 
-RISCV-like processor developed at University of Tehran. 
+A detailed documenation regarding SAYAC LLVM backend can be found at
+https://github.com/ak821/SAYAC-Compiler/blob/main-sayac/docs/SAYAC_LLVM_Compiler.pdf
 
 ## Getting Started with the LLVM System
 
