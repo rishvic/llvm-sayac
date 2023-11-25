@@ -256,6 +256,7 @@ SDValue SAYACTargetLowering::LowerFormalArguments(
     SelectionDAG &DAG, SmallVectorImpl<SDValue> &InVals) const {
 
   MachineFunction &MF = DAG.getMachineFunction();
+  MachineFrameInfo &MFI = MF.getFrameInfo();
   MachineRegisterInfo &MRI = MF.getRegInfo();
 
   // Assign locations to all of the incoming arguments.
@@ -298,9 +299,35 @@ SDValue SAYACTargetLowering::LowerFormalArguments(
 
       InVals.push_back(ArgValue);
     } else {
+      // Sanity check.
       assert(VA.isMemLoc() && "Argument not register or memory");
-      llvm_unreachable(
-          "SAYAC - LowerFormalArguments - Memory argument not implemented");
+
+      SDValue InVal{};
+      ISD::ArgFlagsTy Flags = Ins[I].Flags;
+
+      if (Flags.isByVal()) {
+        int FI = MFI.CreateFixedObject(Flags.getByValSize(),
+                                       VA.getLocMemOffset(), true);
+        InVal = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+      } else {
+        // Load the argument to a virtual register.
+        unsigned ObjSize = VA.getLocVT().getSizeInBits() / 8;
+        if (ObjSize > 2) {
+          errs() << "SAYAC - LowerFormalArguments - Unhandled argument type: "
+                 << EVT(VA.getLocVT()).getEVTString() << "\n";
+        }
+        // Create the frame index object for this incoming parameter...
+        int FI = MFI.CreateFixedObject(ObjSize, VA.getLocMemOffset(), true);
+
+        // Create the SelectionDAG nodes corresponding to a load
+        // from this parameter.
+        SDValue FIN = DAG.getFrameIndex(FI, MVT::i16);
+        InVal = DAG.getLoad(
+            VA.getLocVT(), DL, Chain, FIN,
+            MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), FI));
+      }
+
+      InVals.push_back(InVal);
     }
   }
 
